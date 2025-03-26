@@ -1,15 +1,12 @@
 import pygame
 import sys
 import math
+import random
 
 # Screen and game configuration
 SCREEN_WIDTH = 1270
 SCREEN_HEIGHT = 720
 FPS = 60
-
-# Camera settings
-CAMERA_DEADZONE_TOP = 300
-CAMERA_DEADZONE_BOTTOM = 400
 
 # Color constants
 WHITE = (255, 255, 255)
@@ -17,8 +14,8 @@ BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
 
 # Player movement constants
-PLAYER_WIDTH = 200
-PLAYER_HEIGHT = 100
+PLAYER_WIDTH = 50
+PLAYER_HEIGHT = 50
 MAX_MOVE_SPEED = 10
 ACCELERATION = 1
 FRICTION = 0.2
@@ -29,33 +26,25 @@ COYOTE_TIME = 6
 
 class Camera:
     def __init__(self, width, height):
-        self.camera = pygame.Rect(0, 0, width, height)
-        self.width = width
-        self.height = height
-
-    def apply(self, entity):
-        """Apply camera offset to an entity's rect."""
-        return entity.rect.move(self.camera.topleft)
-
-    def apply_rect(self, rect):
-        """Apply camera offset to a given rect."""
-        return rect.move(self.camera.topleft)
+        self.rect = pygame.Rect(0, 0, width, height)
+        self.world_height = height  # Default to screen height initially
 
     def update(self, target):
-        """Update camera position based on player position."""
-        # Calculate the target y position
-        x = -target.rect.x + self.width // 2
-        y = -target.rect.y + self.height // 2
-
-        # Vertical camera movement with deadzone
-        if target.rect.y < self.camera.y + CAMERA_DEADZONE_TOP:
-            y = -(target.rect.y - CAMERA_DEADZONE_TOP)
+        """Update camera position to follow the target vertically"""
+        # Camera follows player, keeping player at a fixed vertical position
+        target_y = SCREEN_HEIGHT // 2
+        self.rect.y = target.rect.centery - target_y
         
-        if target.rect.y > self.camera.y + self.height - CAMERA_DEADZONE_BOTTOM:
-            y = -(target.rect.y - (self.height - CAMERA_DEADZONE_BOTTOM))
+        # Ensure camera doesn't go below 0 or beyond world height
+        self.rect.y = max(0, min(self.rect.y, self.world_height - SCREEN_HEIGHT))
 
-        # Update camera position
-        self.camera = pygame.Rect(x, y, self.width, self.height)
+    def apply(self, entity):
+        """Adjust entity's position relative to camera"""
+        return entity.rect.move(0, -self.rect.y)
+
+    def apply_rect(self, rect):
+        """Adjust rect position relative to camera"""
+        return rect.move(0, -self.rect.y)
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -195,11 +184,58 @@ class Player(pygame.sprite.Sprite):
         self.still_on_ground |= self.on_ground
 
 class Platform(pygame.sprite.Sprite):
-    def __init__(self, x, y, width, height):
+    def __init__(self, x, y, width, height, color=GREEN):
         super().__init__()
         self.image = pygame.Surface((width, height))
-        self.image.fill(GREEN)
+        self.image.fill(color)
         self.rect = self.image.get_rect(x=x, y=y)
+
+def generate_platforms():
+    """Generate a more interconnected set of platforms with clear paths."""
+    platform_data = [
+        # Ground and initial lower platforms
+        (0, SCREEN_HEIGHT - 20, SCREEN_WIDTH, 20),     # Ground
+        (0, 374, 250, 20),                             # Left lower platform
+        (400, 348, 400, 20),                           # Middle lower platform
+        (930, 348, 340, 20),                           # Right lower platform
+        
+        # Connecting platforms for vertical progression
+        (250, 200, 200, 20),                           # First vertical connection
+        (600, 100, 200, 20),                           # Second vertical connection
+        (900, 50, 200, 20),                            # Third vertical connection
+        
+        # Higher vertical platforms with clear paths
+        (0, -200, 250, 20),                            # Left high platform
+        (400, -300, 300, 20),                          # Middle high platform
+        (800, -400, 400, 20),                          # Right high platform
+        
+        # Even higher platforms with strategic placement
+        (100, -600, 250, 20),                          # Left higher platform
+        (500, -800, 300, 20),                          # Middle higher platform
+        (900, -1000, 350, 20),                         # Right higher platform
+        
+        # Top-most platforms with varied widths
+        (0, -1400, 300, 20),                           # Leftmost top platform
+        (400, -1600, 400, 20),                         # Central top platform
+        (850, -1800, 420, 20),                         # Rightmost top platform
+    ]
+    
+    # Add some random color variations
+    colors = [
+        (0, 255, 0),      # Green
+        (0, 200, 100),    # Teal green
+        (50, 150, 50),    # Dark green
+        (100, 255, 100),  # Light green
+    ]
+    
+    platforms = []
+    for platform_info in platform_data:
+        x, y, width, height = platform_info
+        color = random.choice(colors)
+        platform = Platform(x, y, width, height, color)
+        platforms.append(platform)
+    
+    return platforms
 
 def load_background():
     """Load or create background."""
@@ -219,7 +255,7 @@ def main():
     # Initialize Pygame
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    pygame.display.set_caption("Platformer with Scrolling Camera")
+    pygame.display.set_caption("Platformer Game with Vertical Scrolling")
     clock = pygame.time.Clock()
 
     # Load background
@@ -233,24 +269,17 @@ def main():
     player = Player(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 100)
     all_sprites.add(player)
 
-    # Create camera
-    camera = Camera(SCREEN_WIDTH, SCREEN_HEIGHT)
-
-    # Create platforms with more vertical variety
-    platform_data = [
-        (0, SCREEN_HEIGHT - 20, SCREEN_WIDTH, 20),     # Ground
-        (0, 374, 84, 350),                             # Platform 1
-        (110, 90, 250, 20),                            # Platform 2
-        (930, 348, 400, 20),                           # Platform 3
-        (605, 50, 100, 20),                            # Platform 4
-        (300, -200, 200, 20),                          # Higher platform
-        (700, -400, 250, 20),                          # Even higher platform
-        (100, -600, 180, 20)                           # Highest platform
-    ]
-    for platform_info in platform_data:
-        platform = Platform(*platform_info)
+    # Generate and add platforms
+    platform_list = generate_platforms()
+    for platform in platform_list:
         all_sprites.add(platform)
         platforms.add(platform)
+
+    # Calculate world height (lowest platform point)
+    world_height = max(platform.rect.bottom for platform in platforms)
+
+    # Create camera
+    camera = Camera(SCREEN_WIDTH, world_height)
 
     # Game loop
     running = True
@@ -269,7 +298,7 @@ def main():
         # Clear the screen
         screen.blit(background, (0, 0))
 
-        # Draw sprites with camera offset
+        # Draw sprites relative to camera
         for sprite in all_sprites:
             screen.blit(sprite.image, camera.apply(sprite))
 
