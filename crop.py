@@ -23,8 +23,8 @@ def crop_images(input_folder, output_folder, crop_box):
             print(f"Cropped and saved: {output_path}")
 
 # Example usage
-input_dir = "assets/images/"   # Change this to your input folder
+input_dir = "assets/images/fish"   # Change this to your input folder
 output_dir = "output_images"  # Change this to your output folder
-crop_box = (65, 237, 240, 365)  # Change this to your desired crop dimensions
+crop_box = (402, 268, 520, 337)  # Change this to your desired crop dimensions
 
 crop_images(input_dir, output_dir, crop_box)

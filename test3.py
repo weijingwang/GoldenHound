@@ -85,7 +85,6 @@ class Player(pygame.sprite.Sprite):
 
         # Manage sound playback
         if self.is_moving:
-            print('sadf')
             if not self.sound_playing:
                 self.move_sound.play(-1, fade_ms=200)  # Loop indefinitely
                 self.sound_playing = True
@@ -128,6 +127,7 @@ class Player(pygame.sprite.Sprite):
             # Update y position with bob
             self.rect.y = self.original_y + bob_offset
         else:
+            print(self.rect.y, self.original_y)
             # Reset to original position when moving
             self.rect.y = self.original_y
             self.bob_timer = 0
@@ -154,33 +154,58 @@ class Player(pygame.sprite.Sprite):
         self.animate()
         self.swimming_bob()
 
-import pygame
-import random
-import math
 
 class Fish(pygame.sprite.Sprite):
     def __init__(self, screen_width, screen_height):
         super().__init__()
         
-        # Random fish colors
-        colors = [
-            (255, 0, 0),    # Red
-            (0, 255, 0),    # Green
-            (0, 0, 255),    # Blue
-            (255, 255, 0),  # Yellow
-            (255, 0, 255)   # Magenta
+        # Load fish animation frames
+        self.animation_frames = [
+            pygame.image.load('assets/images/fish1.png').convert_alpha(),
+            pygame.image.load('assets/images/fish2.png').convert_alpha()
         ]
         
-        # Create a simple colored fish surface
-        self.image = pygame.Surface((30, 15), pygame.SRCALPHA)
-        color = random.choice(colors)
-        pygame.draw.polygon(self.image, color, 
-            [(0, 7), (20, 0), (30, 7), (20, 15)])
+        # Color tints for variety
+        color_tints = [
+            (255, 200, 200),   # Light Red
+            (200, 255, 200),   # Light Green
+            (200, 200, 255),   # Light Blue
+            (255, 255, 200),   # Light Yellow
+            (255, 200, 255)    # Light Magenta
+        ]
+        
+        # Choose a random tint
+        tint = random.choice(color_tints)
+        
+        # Create tinted fish surfaces
+        self.tinted_frames = []
+        for frame in self.animation_frames:
+            tinted_frame = frame.copy()
+            for x in range(tinted_frame.get_width()):
+                for y in range(tinted_frame.get_height()):
+                    pixel = tinted_frame.get_at((x, y))
+                    if pixel[3] > 0:  # If pixel is not transparent
+                        # Blend pixel color with tint
+                        new_color = (
+                            min(pixel[0] * tint[0] / 255, 255),
+                            min(pixel[1] * tint[1] / 255, 255),
+                            min(pixel[2] * tint[2] / 255, 255),
+                            pixel[3]
+                        )
+                        tinted_frame.set_at((x, y), new_color)
+            self.tinted_frames.append(tinted_frame)
+        
+        # Animation parameters
+        self.current_frame = 0
+        self.animation_timer = 0
+        self.animation_speed = 10  # Lower is faster
         
         # Position
-        self.rect = self.image.get_rect()
+        self.rect = self.tinted_frames[0].get_rect()
+        self.image = self.tinted_frames[0]
         self.rect.x = screen_width  # Start from right side
         self.start_y = random.randint(0, screen_height - self.rect.height)
+        self.rect.y = self.start_y
         
         # Movement
         self.speed = random.randint(2, 5)
@@ -188,6 +213,13 @@ class Fish(pygame.sprite.Sprite):
         self.amplitude = random.randint(10, 30)  # Amplitude of sine wave
 
     def update(self):
+        # Animate
+        self.animation_timer += 1
+        if self.animation_timer >= self.animation_speed:
+            self.animation_timer = 0
+            self.current_frame = (self.current_frame + 1) % len(self.tinted_frames)
+            self.image = self.tinted_frames[self.current_frame]
+        
         # Move left
         self.rect.x -= self.speed
         
