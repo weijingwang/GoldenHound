@@ -174,24 +174,19 @@ class Player(pygame.sprite.Sprite):
             self.bob_timer = 0
 
     def update(self, rocks):
-        """
-        Update player state.
-        
-        Args:
-            rocks (pygame.sprite.Group): Group of rock sprites
-        """
         self.handle_input(rocks)
         
-        # Update position
-        self.rect.x += self.velocity_x
-        self.rect.y += self.velocity_y
-        self.original_y = self.rect.y
-
         # Handle eating animation
         if self.is_eating:
             self.eating_timer -= 1
             if self.eating_timer <= 0:
                 self.is_eating = False
+
+        # Only update position if actually moving
+        if self.is_moving:
+            self.rect.x += self.velocity_x
+            self.rect.y += self.velocity_y
+            self.original_y = self.rect.y
 
         self.animate()
         self.swimming_bob()

@@ -127,6 +127,11 @@ class SwimmingGame:
         # Update display
         self.noise_overlay.update()
 
+        # FPS show
+        fps = self.clock.get_fps()
+        # Update the window caption with the current FPS
+        pygame.display.set_caption(f"Pyweek 39 downstream. FPS: {fps:.2f}")
+
         pygame.display.flip()
 
     def _quit(self):
@@ -136,6 +141,7 @@ class SwimmingGame:
 
 def main():
     """Entry point for the game."""
+    # Get the FPS
     game = SwimmingGame()
     game.run()
 
