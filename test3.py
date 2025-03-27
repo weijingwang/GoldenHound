@@ -24,6 +24,44 @@ class AssetManager:
             self.sounds[path] = sound
         return self.sounds[path]
 
+class Rock(pygame.sprite.Sprite):
+    """Represents rocks moving across the screen."""
+    def __init__(self, asset_manager, screen_width, screen_height):
+        super().__init__()
+        
+        # Random rock variations
+        rock_images = [
+            'assets/images/rock1.png',
+            'assets/images/rock2.png',
+            'assets/images/rock3.png'
+        ]
+        
+        # Load a random rock image
+        self.image = asset_manager.load_image(random.choice(rock_images))
+        
+        # Randomize rock size slightly
+        scale = random.uniform(0.7, 1.3)
+        original_size = self.image.get_size()
+        new_size = (int(original_size[0] * scale), int(original_size[1] * scale))
+        self.image = pygame.transform.scale(self.image, new_size)
+        
+        # Position
+        self.rect = self.image.get_rect()
+        self.rect.x = screen_width
+        self.rect.y = random.randint(0, screen_height - self.rect.height)
+        
+        # Movement
+        self.speed = 3
+
+    def update(self):
+        """Update rock movement."""
+        # Move left
+        self.rect.x -= self.speed
+        
+        # Remove if off screen
+        if self.rect.right < 0:
+            self.kill()
+
 class Player(pygame.sprite.Sprite):
     def __init__(self, asset_manager, x, y):
         super().__init__()
@@ -69,16 +107,19 @@ class Player(pygame.sprite.Sprite):
         # Score
         self.score = 0
 
-    def handle_input(self):
-        """Handle player input and movement."""
+    def handle_input(self, rocks):
+        """Handle player input and movement with rock collision check."""
         keys = pygame.key.get_pressed()
+        
+        # Backup current position
+        old_x, old_y = self.rect.x, self.rect.y
         
         # Reset velocities
         self.velocity_x = 0
         self.velocity_y = 0
         self.is_moving = False
         
-        # WASD Movement
+        # WASD Movement with collision detection
         movement_map = {
             pygame.K_w: (0, -self.speed),
             pygame.K_s: (0, self.speed),
@@ -88,9 +129,22 @@ class Player(pygame.sprite.Sprite):
         
         for key, (dx, dy) in movement_map.items():
             if keys[key]:
-                self.velocity_x += dx
-                self.velocity_y += dy
-                self.is_moving = True
+                # Tentative move
+                self.rect.x += dx
+                self.rect.y += dy
+                
+                # Check for collisions
+                collision = pygame.sprite.spritecollideany(self, rocks)
+                
+                if collision:
+                    # Revert position if collision detected
+                    self.rect.x = old_x
+                    self.rect.y = old_y
+                else:
+                    # Move is valid
+                    self.velocity_x = dx
+                    self.velocity_y = dy
+                    self.is_moving = True
 
         # Manage sound playback
         self._manage_movement_sound()
@@ -129,9 +183,9 @@ class Player(pygame.sprite.Sprite):
             self.rect.y = self.original_y
             self.bob_timer = 0
 
-    def update(self):
+    def update(self, rocks):
         """Update player state."""
-        self.handle_input()
+        self.handle_input(rocks)
         
         # Update position
         self.rect.x += self.velocity_x
@@ -146,80 +200,6 @@ class Player(pygame.sprite.Sprite):
 
         self.animate()
         self.swimming_bob()
-
-class Fish(pygame.sprite.Sprite):
-    def __init__(self, asset_manager, screen_width, screen_height):
-        super().__init__()
-        
-        # Load and tint fish frames
-        base_frames = [
-            asset_manager.load_image('assets/images/fish1.png'),
-            asset_manager.load_image('assets/images/fish2.png')
-        ]
-        
-        # Color tints
-        color_tints = [
-            (255, 200, 200),   # Light Red
-            (200, 255, 200),   # Light Green
-            (200, 200, 255),   # Light Blue
-            (255, 255, 200),   # Light Yellow
-            (255, 200, 255)    # Light Magenta
-        ]
-        
-        # Tint frames
-        self.tinted_frames = self._tint_frames(base_frames, random.choice(color_tints))
-        
-        # Animation parameters
-        self.current_frame = 0
-        self.animation_timer = 0
-        self.animation_speed = 10
-        
-        # Position and movement
-        self.rect = self.tinted_frames[0].get_rect()
-        self.image = self.tinted_frames[0]
-        self.rect.x = screen_width
-        self.start_y = random.randint(0, screen_height - self.rect.height)
-        self.rect.y = self.start_y
-        
-        # Fish-specific movement
-        self.speed = random.randint(2, 5)
-        self.frequency = random.uniform(0.005, 0.02)
-        self.amplitude = random.randint(10, 30)
-
-    def _tint_frames(self, frames, tint):
-        """Apply color tint to fish frames."""
-        tinted_frames = []
-        for frame in frames:
-            tinted_frame = frame.copy()
-            for x in range(tinted_frame.get_width()):
-                for y in range(tinted_frame.get_height()):
-                    pixel = tinted_frame.get_at((x, y))
-                    if pixel[3] > 0:  # Non-transparent pixel
-                        new_color = tuple(
-                            min(pixel[i] * tint[i] / 255, 255) 
-                            for i in range(3)
-                        ) + (pixel[3],)
-                        tinted_frame.set_at((x, y), new_color)
-            tinted_frames.append(tinted_frame)
-        return tinted_frames
-
-    def update(self):
-        """Update fish animation and movement."""
-        # Animate
-        self.animation_timer += 1
-        if self.animation_timer >= self.animation_speed:
-            self.animation_timer = 0
-            self.current_frame = (self.current_frame + 1) % len(self.tinted_frames)
-            self.image = self.tinted_frames[self.current_frame]
-        
-        # Move left with sine wave motion
-        self.rect.x -= self.speed
-        time = pygame.time.get_ticks()
-        self.rect.y = self.start_y + int(self.amplitude * math.sin(time * self.frequency))
-        
-        # Remove if off screen
-        if self.rect.right < 0:
-            self.kill()
 
 class SwimmingGame:
     def __init__(self):
@@ -243,10 +223,13 @@ class SwimmingGame:
         # Sprite groups
         self.all_sprites = pygame.sprite.Group(self.player)
         self.fish_group = pygame.sprite.Group()
+        self.rocks_group = pygame.sprite.Group()
         
         # Game state
         self.fish_spawn_timer = 0
         self.fish_spawn_delay = 60
+        self.rock_spawn_timer = 0
+        self.rock_spawn_delay = 200  # Less frequent rock spawning
         
         # Font for score
         self.font = pygame.font.Font(None, 36)
@@ -269,11 +252,14 @@ class SwimmingGame:
                 if event.type == pygame.QUIT:
                     running = False
             
-            # Spawn fish
+            # Spawn fish and rocks
             self._spawn_fish()
+            self._spawn_rocks()
             
             # Update game state
-            self.all_sprites.update()
+            self.player.update(self.rocks_group)
+            self.fish_group.update()
+            self.rocks_group.update()
             
             # Check for fish collisions
             self._handle_fish_collisions()
@@ -286,6 +272,15 @@ class SwimmingGame:
         
         # Clean up
         self._quit()
+
+    def _spawn_rocks(self):
+        """Spawn rocks at intervals."""
+        self.rock_spawn_timer += 1
+        if self.rock_spawn_timer >= self.rock_spawn_delay:
+            new_rock = Rock(self.asset_manager, self.screen_width, self.screen_height)
+            self.rocks_group.add(new_rock)
+            self.all_sprites.add(new_rock)
+            self.rock_spawn_timer = 0
 
     def _spawn_fish(self):
         """Spawn fish at intervals."""
@@ -321,6 +316,80 @@ class SwimmingGame:
         """Properly quit the game."""
         pygame.quit()
         sys.exit()
+
+class Fish(pygame.sprite.Sprite):
+    def __init__(self, asset_manager, screen_width, screen_height):
+        super().__init__()
+        
+        # Load fish animation frames
+        base_frames = [
+            asset_manager.load_image('assets/images/fish1.png'),
+            asset_manager.load_image('assets/images/fish2.png')
+        ]
+        
+        # Color tints
+        color_tints = [
+            (255, 200, 200),   # Light Red
+            (200, 255, 200),   # Light Green
+            (200, 200, 255),   # Light Blue
+            (255, 255, 200),   # Light Yellow
+            (255, 200, 255)    # Light Magenta
+        ]
+        
+        # Choose a random tint
+        tint = random.choice(color_tints)
+        
+        # Create tinted fish surfaces
+        self.tinted_frames = []
+        for frame in base_frames:
+            tinted_frame = frame.copy()
+            for x in range(tinted_frame.get_width()):
+                for y in range(tinted_frame.get_height()):
+                    pixel = tinted_frame.get_at((x, y))
+                    if pixel[3] > 0:  # If pixel is not transparent
+                        # Blend pixel color with tint
+                        new_color = tuple(
+                            min(pixel[i] * tint[i] / 255, 255) 
+                            for i in range(3)
+                        ) + (pixel[3],)
+                        tinted_frame.set_at((x, y), new_color)
+            self.tinted_frames.append(tinted_frame)
+        
+        # Animation parameters
+        self.current_frame = 0
+        self.animation_timer = 0
+        self.animation_speed = 10  # Lower is faster
+        
+        # Position
+        self.rect = self.tinted_frames[0].get_rect()
+        self.image = self.tinted_frames[0]
+        self.rect.x = screen_width  # Start from right side
+        self.start_y = random.randint(0, screen_height - self.rect.height)
+        self.rect.y = self.start_y
+        
+        # Movement
+        self.speed = random.randint(2, 5)
+        self.frequency = random.uniform(0.005, 0.02)  # Random sine frequency
+        self.amplitude = random.randint(10, 30)  # Amplitude of sine wave
+
+    def update(self):
+        # Animate
+        self.animation_timer += 1
+        if self.animation_timer >= self.animation_speed:
+            self.animation_timer = 0
+            self.current_frame = (self.current_frame + 1) % len(self.tinted_frames)
+            self.image = self.tinted_frames[self.current_frame]
+        
+        # Move left
+        self.rect.x -= self.speed
+        
+        # Apply vertical sine wave movement
+        time = pygame.time.get_ticks()  # Get elapsed time
+        self.rect.y = self.start_y + int(self.amplitude * math.sin(time * self.frequency))
+        
+        # Remove if off screen
+        if self.rect.right < 0:
+            self.kill()
 
 def main():
     game = SwimmingGame()
