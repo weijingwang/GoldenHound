@@ -4,6 +4,7 @@ from fish import *
 from utils import *
 from player import *
 from rocks import *
+from background import *
 
 class SwimmingGame:
     """Main game class managing game state and loop."""
@@ -34,13 +35,16 @@ class SwimmingGame:
         self.fish_spawn_timer = 0
         self.fish_spawn_delay = 60
         self.rock_spawn_timer = 0
-        self.rock_spawn_delay = 200  # Less frequent rock spawning
+        self.rock_spawn_delay = 100  # Less frequent rock spawning
         
         # Font for score
         self.font = pygame.font.Font(None, 36)
         
         # Background music
         self._setup_background_music()
+
+        self.noise_overlay = PerlinNoiseOverlay(self.screen_width, self.screen_height)
+
 
     def _setup_background_music(self):
         """Set up and play background music."""
@@ -111,6 +115,9 @@ class SwimmingGame:
     def _draw(self):
         """Draw game elements."""
         self.screen.fill((135, 206, 235))  # Sky blue background
+        noise_surface = self.noise_overlay.generate()
+        self.screen.blit(noise_surface, (0, 0))
+
         self.all_sprites.draw(self.screen)
         
         # Draw score
@@ -118,6 +125,8 @@ class SwimmingGame:
         self.screen.blit(score_text, (10, 10))
         
         # Update display
+        self.noise_overlay.update()
+
         pygame.display.flip()
 
     def _quit(self):

@@ -1,8 +1,6 @@
 import pygame
 import math
 
-ROCK_PADDING = 10
-
 class Player(pygame.sprite.Sprite):
     """Represents the player character in the game."""
     def __init__(self, asset_manager, x, y):
@@ -17,7 +15,7 @@ class Player(pygame.sprite.Sprite):
         # Load special state images and sounds
         self.eating_image = asset_manager.load_image("assets/images/player_eat.png")
         self.eat_sound = asset_manager.load_sound("assets/sounds/CLICK.ogg", 0.2)
-        self.move_sound = asset_manager.load_sound("assets/sounds/swim.ogg", 0.05)
+        self.move_sound = asset_manager.load_sound("assets/sounds/swim.ogg", 0.1)
 
         # Animation and state management
         self.current_frame = 0
@@ -119,13 +117,13 @@ class Player(pygame.sprite.Sprite):
                 
                 # Push out based on the smallest overlap
                 if min_overlap == overlap_left:
-                    self.rect.right = rock.rect.left - ROCK_PADDING
+                    self.rect.right = rock.rect.left - self.speed *2
                 elif min_overlap == overlap_right:
-                    self.rect.left = rock.rect.right + ROCK_PADDING
+                    self.rect.left = rock.rect.right + self.speed
                 elif min_overlap == overlap_top:
-                    self.rect.bottom = rock.rect.top - ROCK_PADDING
+                    self.rect.bottom = rock.rect.top - self.speed
                 elif min_overlap == overlap_bottom:
-                    self.rect.top = rock.rect.bottom + ROCK_PADDING
+                    self.rect.top = rock.rect.bottom + self.speed
                 
                 # Apply rock's movement to ensure continuous pushback
                 self.rect.x += rock_dx

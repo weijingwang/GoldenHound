@@ -6,3 +6,4 @@ assets/images/.DS_Store
 __pycache__/rocks.cpython-312.pyc
 __pycache__/player.cpython-312.pyc
 __pycache__/fish.cpython-312.pyc
+__pycache__/background.cpython-312.pyc
