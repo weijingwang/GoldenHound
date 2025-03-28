@@ -1,7 +1,6 @@
 import pygame
 import sys
 import math
-from typing import Optional
 
 # Assuming these are imported from separate files as in the original code
 from fish import Fish
@@ -42,6 +41,10 @@ class SwimmingGame:
         
         # Setup background
         self.noise_overlay = PerlinNoiseOverlay(self.screen_width, self.screen_height)
+        
+        # Death screen font
+        self.death_font_large = pygame.font.Font(None, 72)
+        self.death_font_small = pygame.font.Font(None, 48)
 
     def _init_game_parameters(self):
         """Initialize game state parameters."""
@@ -56,11 +59,14 @@ class SwimmingGame:
         self.current_hunger = self.max_hunger
         self.hunger_decrease_rate = 0.1
         self.hunger_decrease_timer = 0
-        self.hunger_decrease_interval = 180
+        self.hunger_decrease_interval = 100#180
         self.hunger_replenish_amount = 2
         
         # Heart animation
         self.heart_jiggle_time = 0
+        
+        # Game state
+        self.game_over = False
 
     def _load_game_assets(self):
         """Load game images and fonts."""
@@ -109,7 +115,10 @@ class SwimmingGame:
             running = self._handle_events()
             
             # Game updates
-            self._update_game_state()
+            if not self.game_over:
+                game_continues = self._update_game_state()
+                if not game_continues:
+                    self.game_over = True
             
             # Drawing
             self._draw()
@@ -125,7 +134,33 @@ class SwimmingGame:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return False
+            
+            # Restart game on death screen
+            if self.game_over and event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    self._restart_game()
+                elif event.key == pygame.K_q:
+                    return False
         return True
+    
+    def _restart_game(self):
+        """Restart the game after death."""
+        # Reset game parameters
+        self._init_game_parameters()
+        
+        # Reset player
+        self.player = Player(self.asset_manager, self.screen_width // 2, self.screen_height // 2)
+        
+        # Clear sprite groups
+        self.all_sprites.empty()
+        self.fish_group.empty()
+        self.rocks_group.empty()
+        
+        # Add player back to sprite groups
+        self.all_sprites.add(self.player)
+        
+        # Reset game over state
+        self.game_over = False
 
     def _update_game_state(self):
         """Update all game state elements."""
@@ -142,10 +177,12 @@ class SwimmingGame:
         self._handle_fish_collisions()
         
         # Update hunger
+        if self.current_hunger <= 0:
+            return False
+        
         self._update_hunger()
         
-        # Check game over condition
-        return self.current_hunger > 0
+        return True
 
     def _spawn_rocks(self):
         """Spawn rocks at intervals."""
@@ -242,15 +279,44 @@ class SwimmingGame:
         noise_surface = self.noise_overlay.generate()
         self.screen.blit(noise_surface, (0, 0))
 
-        # Draw sprites
-        self.all_sprites.draw(self.screen)
-        
-        # Draw UI elements
-        self._draw_ui()
+        if not self.game_over:
+            # Draw sprites
+            self.all_sprites.draw(self.screen)
+            
+            # Draw UI elements
+            self._draw_ui()
+        else:
+            # Draw death screen
+            self._draw_death_screen()
         
         # Update display
         self.noise_overlay.update()
         pygame.display.flip()
+
+    def _draw_death_screen(self):
+        """Draw game over screen."""
+        # Darken the screen
+        overlay = pygame.Surface((self.screen_width, self.screen_height), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 128))  # Semi-transparent black
+        self.screen.blit(overlay, (0, 0))
+        
+        # Game Over text
+        game_over_text = self.death_font_large.render("GAME OVER", True, (255, 0, 0))
+        score_text = self.death_font_small.render(f"Score: {self.player.score}", True, (255, 255, 255))
+        restart_text = self.death_font_small.render("Press 'R' to Restart", True, (255, 255, 255))
+        quit_text = self.death_font_small.render("Press 'Q' to Quit", True, (255, 255, 255))
+        
+        # Center text
+        game_over_rect = game_over_text.get_rect(center=(self.screen_width//2, self.screen_height//2 - 100))
+        score_rect = score_text.get_rect(center=(self.screen_width//2, self.screen_height//2))
+        restart_rect = restart_text.get_rect(center=(self.screen_width//2, self.screen_height//2 + 100))
+        quit_rect = quit_text.get_rect(center=(self.screen_width//2, self.screen_height//2 + 150))
+        
+        # Blit text
+        self.screen.blit(game_over_text, game_over_rect)
+        self.screen.blit(score_text, score_rect)
+        self.screen.blit(restart_text, restart_rect)
+        self.screen.blit(quit_text, quit_rect)
 
     def _draw_ui(self):
         """Draw user interface elements."""
