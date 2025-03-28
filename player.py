@@ -3,8 +3,12 @@ import math
 
 class Player(pygame.sprite.Sprite):
     """Represents the player character in the game."""
-    def __init__(self, asset_manager, x, y):
+    def __init__(self, asset_manager, x, y, screen_width, screen_height):
         super().__init__()
+        
+        # Screen dimensions for boundary checks
+        self.screen_width = screen_width
+        self.screen_height = screen_height
         
         # Load animation frames
         self.animation_frames = [
@@ -49,7 +53,7 @@ class Player(pygame.sprite.Sprite):
 
     def handle_input(self, rocks):
         """
-        Handle player input and movement with continuous rock pushback.
+        Handle player input and movement with continuous rock pushback and screen boundary checks.
         
         Args:
             rocks (pygame.sprite.Group): Group of rock sprites
@@ -135,9 +139,24 @@ class Player(pygame.sprite.Sprite):
             self.velocity_x = player_dx
             self.velocity_y = player_dy
         
+        # Screen boundary checks
+        # Left boundary (always 0)
+        self.rect.left = max(-100, self.rect.left)
+        
+        # Right boundary
+        self.rect.right = min(self.screen_width, self.rect.right)
+        
+        # Top boundary 
+        self.rect.top = max(0, self.rect.top)
+        
+        # Bottom boundary
+        self.rect.bottom = min(self.screen_height, self.rect.bottom)
+        
         # Manage sound playback only when actually moving
         if self.is_moving:
             self._manage_movement_sound()
+
+    # Rest of the methods remain the same as in the original code
 
     def _manage_movement_sound(self):
         """Manage swimming sound based on movement state."""

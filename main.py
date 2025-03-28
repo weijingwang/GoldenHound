@@ -8,92 +8,8 @@ from fish import Fish
 from utils import AssetManager, PerlinNoiseOverlay
 from player import Player
 from rocks import Rock
-
-class Bird(pygame.sprite.Sprite):
-    """Bird enemy that flies across the screen and eats fish."""
-    def __init__(self, asset_manager, screen_width, screen_height):
-        super().__init__()
-        
-        # Load eagle image
-        try:
-            self.original_image = pygame.image.load("assets/images/eagle.png").convert_alpha()
-            # Scale the image to an appropriate size
-            # self.original_image = pygame.transform.scale(original_image, (100, 70))
-            self.image = self.original_image.copy()
-            self.width, self.height = self.image.get_size()
-        except Exception as e:
-            print(f"Error loading bird image: {e}")
-            # Fallback to a colored rectangle if image fails
-            self.original_image = pygame.Surface((100, 70), pygame.SRCALPHA)
-            self.original_image.fill((139, 69, 19))  # Brown color
-            self.image = self.original_image.copy()
-            self.width, self.height = self.image.get_size()
-
-        # eagle sound
-        self.bird_sound = asset_manager.load_sound("assets/sounds/bird.ogg", 0.8)
-
-        # Randomly choose entry side with offset to ensure completely off-screen
-        entry_side = random.choice(['bottom', 'right', 'top'])
-        
-        # Set initial position based on entry side, ensuring fully off-screen
-        if entry_side == 'bottom':
-            self.rect = self.image.get_rect(midbottom=(screen_width + self.width, 
-                                                       random.randint(-self.height, screen_height + self.height)))
-            self.speed_x = -random.uniform(3, 6)
-            self.speed_y = random.uniform(-1, 1)
-        elif entry_side == 'right':
-            self.rect = self.image.get_rect(midright=(screen_width + self.width, 
-                                                      random.randint(-self.height, screen_height + self.height)))
-            self.speed_x = -random.uniform(3, 6)
-            self.speed_y = random.uniform(-1, 1)
-        else:  # top
-            self.rect = self.image.get_rect(midtop=(random.randint(-self.width, screen_width + self.width), 
-                                                    -self.height))
-            self.speed_x = random.uniform(-1, 1)
-            self.speed_y = random.uniform(3, 6)
-        
-        # Bird tracking and behavior
-        self.hunting = False
-        self.target_fish = None
-        self.eat_delay = 30  # Frames to stay over a fish
-        self.eat_timer = 0
-
-    def update(self, fish_group):
-        """Update bird movement and fish hunting behavior."""
-        if not self.hunting:
-            # Calculate movement angle
-            # Subtract 90 degrees to align the top of the image with movement direction
-            movement_angle = math.degrees(math.atan2(-self.speed_y, self.speed_x)) - 90
-            
-            # Rotate the image based on movement direction
-            self.image = pygame.transform.rotate(self.original_image, movement_angle)
-            self.rect = self.image.get_rect(center=self.rect.center)
-            
-            # Normal flight movement
-            self.rect.x += self.speed_x
-            self.rect.y += self.speed_y
-            
-            # Check for potential fish to hunt
-            for fish in fish_group:
-                if self.rect.colliderect(fish.rect):
-                    self.hunting = True
-                    self.target_fish = fish
-                    break
-        
-        if self.hunting and self.target_fish:
-            # Track the fish
-            self.rect.centerx = self.target_fish.rect.centerx
-            self.rect.centery = self.target_fish.rect.centery
-            
-            # Eat timer
-            self.eat_timer += 1
-            if self.eat_timer >= self.eat_delay:
-                # Remove the fish
-                self.bird_sound.play()
-                self.target_fish.kill()
-                self.target_fish = None
-                self.hunting = False
-                self.eat_timer = 0
+from bird import Bird
+from miner import Miner
 
 class SwimmingGame:
     """Main game class managing game state and loop."""
@@ -113,12 +29,13 @@ class SwimmingGame:
         
         # Game objects
         self.clock = pygame.time.Clock()
-        self.player = Player(self.asset_manager, self.screen_width // 2, self.screen_height // 2)
+        self.player = Player(self.asset_manager, self.screen_width // 2, self.screen_height // 2, self.screen_width, self.screen_height)
         
         # Sprite groups
         self.all_sprites = pygame.sprite.Group(self.player)
         self.fish_group = pygame.sprite.Group()
         self.rocks_group = pygame.sprite.Group()
+        self.miner_group = pygame.sprite.Group()
         
         # Game state parameters
         self._init_game_parameters()
@@ -148,6 +65,13 @@ class SwimmingGame:
         self.bird_spawn_timer = 0
         self.bird_spawn_delay = 500  # Infrequent bird spawns
         
+        # Add miner spawn parameters
+        self.miner_spawn_timer = 0
+        self.miner_spawn_delay = 300  # Adjust spawn rate as needed
+        
+        # Miner hit cooldown to prevent multiple hits at once
+        self.miner_hit_cooldown = 0
+
         # Hunger system
         self.max_hunger = 10  # 10 half-hearts
         self.current_hunger = self.max_hunger
@@ -243,7 +167,7 @@ class SwimmingGame:
         self._init_game_parameters()
         
         # Reset player
-        self.player = Player(self.asset_manager, self.screen_width // 2, self.screen_height // 2)
+        self.player = Player(self.asset_manager, self.screen_width // 2, self.screen_height // 2, self.screen_width, self.screen_height)
         
         # Clear sprite groups
         self.all_sprites.empty()
@@ -254,6 +178,12 @@ class SwimmingGame:
         self.all_sprites.add(self.player)
         # Clear bird group
         self.bird_group.empty()
+
+        # Reset miner group
+        self.miner_group.empty()
+        
+        # Reset miner hit cooldown
+        self.miner_hit_cooldown = 0
         
         # Reset bird spawn timer
         self.bird_spawn_timer = 0
@@ -269,21 +199,43 @@ class SwimmingGame:
             self.all_sprites.add(new_bird)
             self.bird_spawn_timer = 0
 
+    def _spawn_miners(self):
+        """Spawn miners at intervals."""
+        self.miner_spawn_timer += 1
+        print(f"Miner spawn timer: {self.miner_spawn_timer}, Delay: {self.miner_spawn_delay}")  # Debug print
+        if self.miner_spawn_timer >= self.miner_spawn_delay:
+            print("Spawning miner!")  # Debug print
+            new_miner = Miner(self.asset_manager, self.screen_width, self.screen_height)
+            self.miner_group.add(new_miner)
+            self.all_sprites.add(new_miner)
+            self.miner_spawn_timer = 0
+
     def _update_game_state(self):
         """Update all game state elements."""
         # Spawn game elements
         self._spawn_fish()
         self._spawn_rocks()
         self._spawn_birds()
+        self._spawn_miners()  # Add miner spawning
         
         # Update game objects
         self.player.update(self.rocks_group)
         self.fish_group.update()
         self.rocks_group.update()
         self.bird_group.update(self.fish_group)
+        self.miner_group.update()  # Update miners
+        
+        # Manage hit cooldown
+        if self.miner_hit_cooldown > 0:
+            self.miner_hit_cooldown -= 1
         
         # Handle interactions
         self._handle_fish_collisions()
+        self._handle_miner_collisions()
+        
+        # Check if player is trapped
+        if self._check_player_trapped_by_rocks():
+            return False
         
         # Update hunger
         if self.current_hunger <= 0:
@@ -311,6 +263,40 @@ class SwimmingGame:
             self.all_sprites.add(new_fish)
             self.fish_spawn_timer = 0
 
+    def _handle_miner_collisions(self):
+        """Handle player collisions with miners."""
+        # Only check for collisions if not in cooldown
+        if self.miner_hit_cooldown <= 0:
+            for miner in self.miner_group:
+                if miner.check_collision(self.player):
+                    # Lose one heart
+                    self.current_hunger = max(0, self.current_hunger - 2)
+                    
+                    # Set hit cooldown to prevent rapid multiple hits
+                    self.miner_hit_cooldown = 30  # Adjust as needed for balance
+                    
+                    # Optional: Add hit sound
+                    # You might want to add a hit sound to your asset manager
+                    # self.hit_sound.play()
+                    break
+
+    def _check_player_trapped_by_rocks(self):
+        """
+        Check if player is trapped between a rock and the left screen edge.
+        
+        Returns:
+            bool: True if player is trapped, False otherwise
+        """
+        # Check if player is at the left edge of the screen
+        if self.player.rect.left <= 0:
+            # Find rocks touching the player's left side
+            for rock in self.rocks_group:
+                if self.player.rect.colliderect(rock.rect) and \
+                   rock.rect.right >= self.player.rect.left and \
+                   rock.rect.left <= self.player.rect.left:
+                    return True
+        return False
+    
     def _handle_fish_collisions(self):
         """Handle player eating fish."""
         fish_eaten = pygame.sprite.spritecollide(self.player, self.fish_group, True)
