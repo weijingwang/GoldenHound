@@ -1,12 +1,80 @@
 import pygame
 import sys
 import math
+import random
 
 # Assuming these are imported from separate files as in the original code
 from fish import Fish
 from utils import AssetManager, PerlinNoiseOverlay
 from player import Player
 from rocks import Rock
+
+class Bird(pygame.sprite.Sprite):
+    """Bird enemy that flies across the screen and eats fish."""
+    def __init__(self, asset_manager, screen_width, screen_height):
+        super().__init__()
+        
+        # Load eagle image
+        try:
+            self.image = pygame.image.load("assets/images/eagle.png").convert_alpha()
+            # Scale the image to an appropriate size
+            self.image = pygame.transform.scale(self.image, (100, 70))
+        except Exception as e:
+            print(f"Error loading bird image: {e}")
+            # Fallback to a colored rectangle if image fails
+            self.image = pygame.Surface((100, 70))
+            self.image.fill((139, 69, 19))  # Brown color
+        
+        # Randomly choose entry side
+        entry_side = random.choice(['left', 'right', 'top'])
+        
+        # Set initial position based on entry side
+        if entry_side == 'left':
+            self.rect = self.image.get_rect(midleft=(-100, random.randint(0, screen_height)))
+            self.speed_x = random.uniform(3, 6)
+            self.speed_y = random.uniform(-1, 1)
+        elif entry_side == 'right':
+            self.rect = self.image.get_rect(midright=(screen_width + 100, random.randint(0, screen_height)))
+            self.speed_x = -random.uniform(3, 6)
+            self.speed_y = random.uniform(-1, 1)
+        else:  # top
+            self.rect = self.image.get_rect(midtop=(random.randint(0, screen_width), -100))
+            self.speed_x = random.uniform(-1, 1)
+            self.speed_y = random.uniform(3, 6)
+        
+        # Bird tracking and behavior
+        self.hunting = False
+        self.target_fish = None
+        self.eat_delay = 30  # Frames to stay over a fish
+        self.eat_timer = 0
+
+    def update(self, fish_group):
+        """Update bird movement and fish hunting behavior."""
+        if not self.hunting:
+            # Normal flight movement
+            self.rect.x += self.speed_x
+            self.rect.y += self.speed_y
+            
+            # Check for potential fish to hunt
+            for fish in fish_group:
+                if self.rect.colliderect(fish.rect):
+                    self.hunting = True
+                    self.target_fish = fish
+                    break
+        
+        if self.hunting and self.target_fish:
+            # Track the fish
+            self.rect.centerx = self.target_fish.rect.centerx
+            self.rect.centery = self.target_fish.rect.centery
+            
+            # Eat timer
+            self.eat_timer += 1
+            if self.eat_timer >= self.eat_delay:
+                # Remove the fish
+                self.target_fish.kill()
+                self.target_fish = None
+                self.hunting = False
+                self.eat_timer = 0
 
 class SwimmingGame:
     """Main game class managing game state and loop."""
@@ -53,6 +121,13 @@ class SwimmingGame:
         self.fish_spawn_delay = 60
         self.rock_spawn_timer = 0
         self.rock_spawn_delay = 100
+
+        # Add bird group
+        self.bird_group = pygame.sprite.Group()
+        
+        # Bird spawn parameters
+        self.bird_spawn_timer = 0
+        self.bird_spawn_delay = 500  # Infrequent bird spawns
         
         # Hunger system
         self.max_hunger = 10  # 10 half-hearts
@@ -158,20 +233,35 @@ class SwimmingGame:
         
         # Add player back to sprite groups
         self.all_sprites.add(self.player)
+        # Clear bird group
+        self.bird_group.empty()
         
+        # Reset bird spawn timer
+        self.bird_spawn_timer = 0
         # Reset game over state
         self.game_over = False
+
+    def _spawn_birds(self):
+        """Spawn birds at intervals."""
+        self.bird_spawn_timer += 1
+        if self.bird_spawn_timer >= self.bird_spawn_delay:
+            new_bird = Bird(self.asset_manager, self.screen_width, self.screen_height)
+            self.bird_group.add(new_bird)
+            self.all_sprites.add(new_bird)
+            self.bird_spawn_timer = 0
 
     def _update_game_state(self):
         """Update all game state elements."""
         # Spawn game elements
         self._spawn_fish()
         self._spawn_rocks()
+        self._spawn_birds()
         
         # Update game objects
         self.player.update(self.rocks_group)
         self.fish_group.update()
         self.rocks_group.update()
+        self.bird_group.update(self.fish_group)
         
         # Handle interactions
         self._handle_fish_collisions()
