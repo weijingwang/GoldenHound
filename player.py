@@ -19,7 +19,7 @@ class Player(pygame.sprite.Sprite):
         # Load special state images and sounds
         self.eating_image = asset_manager.load_image("assets/images/player_eat.png")
         self.eat_sound = asset_manager.load_sound("assets/sounds/CLICK.ogg", 0.2)
-        self.move_sound = asset_manager.load_sound("assets/sounds/swim.ogg", 0.1)
+        self.move_sound = asset_manager.load_sound("assets/sounds/swim.ogg", 0.2)
 
         # Animation and state management
         self.current_frame = 0
