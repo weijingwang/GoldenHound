@@ -37,6 +37,9 @@ class SwimmingGame:
         self.rocks_group = pygame.sprite.Group()
         self.miner_group = pygame.sprite.Group()
         
+        # Level system parameters
+        self._init_level_system()
+        
         # Game state parameters
         self._init_game_parameters()
         
@@ -49,6 +52,22 @@ class SwimmingGame:
         # Death screen font
         self.death_font_large = pygame.font.Font(None, 72)
         self.death_font_small = pygame.font.Font(None, 48)
+
+    def _init_level_system(self):
+        """Initialize level progression system."""
+        self.current_level = 1
+        self.level_duration = 500  # 5 seconds per level at 60 FPS
+        self.level_timer = 0
+        self.level_progress = 0
+        self.max_levels = 4
+        
+        # Level spawn configuration
+        self.level_spawn_config = {
+            1: {'fish': True, 'rocks': False, 'birds': False, 'miners': False},
+            2: {'fish': True, 'rocks': True, 'birds': False, 'miners': False},
+            3: {'fish': True, 'rocks': True, 'birds': True, 'miners': False},
+            4: {'fish': True, 'rocks': True, 'birds': True, 'miners': True}
+        }
 
     def _init_game_parameters(self):
         """Initialize game state parameters."""
@@ -77,7 +96,7 @@ class SwimmingGame:
         self.current_hunger = self.max_hunger
         self.hunger_decrease_rate = 0.1
         self.hunger_decrease_timer = 0
-        self.hunger_decrease_interval = 100#180
+        self.hunger_decrease_interval = 100
         self.hunger_replenish_amount = 2
         
         # Heart animation
@@ -85,6 +104,44 @@ class SwimmingGame:
         
         # Game state
         self.game_over = False
+
+    def _update_level_progression(self):
+        """Manage level progression."""
+        # Increment level timer
+        self.level_timer += 1
+        
+        # Calculate progress percentage
+        self.level_progress = min(100, (self.level_timer / self.level_duration) * 100)
+        
+        # Check if level is complete
+        if self.level_timer >= self.level_duration:
+            # Move to next level
+            self.current_level = min(self.current_level + 1, self.max_levels)
+            self.level_timer = 0
+            self.level_progress = 0
+            
+            # Reset spawn timers when changing levels
+            self.fish_spawn_timer = 0
+            self.rock_spawn_timer = 0
+            self.bird_spawn_timer = 0
+            self.miner_spawn_timer = 0
+
+    def _spawn_elements(self):
+        """Spawn game elements based on current level."""
+        current_config = self.level_spawn_config[self.current_level]
+        
+        # Spawn fish (always active)
+        self._spawn_fish()
+        
+        # Conditional spawns based on current level
+        if current_config['rocks']:
+            self._spawn_rocks()
+        
+        if current_config['birds']:
+            self._spawn_birds()
+        
+        if current_config['miners']:
+            self._spawn_miners()
 
     def _load_game_assets(self):
         """Load game images and fonts."""
@@ -166,6 +223,9 @@ class SwimmingGame:
         # Reset game parameters
         self._init_game_parameters()
         
+        # Reset level system
+        self._init_level_system()
+        
         # Reset player
         self.player = Player(self.asset_manager, self.screen_width // 2, self.screen_height // 2, self.screen_width, self.screen_height)
         
@@ -173,20 +233,12 @@ class SwimmingGame:
         self.all_sprites.empty()
         self.fish_group.empty()
         self.rocks_group.empty()
+        self.bird_group.empty()
+        self.miner_group.empty()
         
         # Add player back to sprite groups
         self.all_sprites.add(self.player)
-        # Clear bird group
-        self.bird_group.empty()
-
-        # Reset miner group
-        self.miner_group.empty()
         
-        # Reset miner hit cooldown
-        self.miner_hit_cooldown = 0
-        
-        # Reset bird spawn timer
-        self.bird_spawn_timer = 0
         # Reset game over state
         self.game_over = False
 
@@ -212,18 +264,23 @@ class SwimmingGame:
 
     def _update_game_state(self):
         """Update all game state elements."""
+        # Update level progression
+        self._update_level_progression()
+        
         # Spawn game elements
-        self._spawn_fish()
-        self._spawn_rocks()
-        self._spawn_birds()
-        self._spawn_miners()  # Add miner spawning
+        self._spawn_elements()
         
         # Update game objects
         self.player.update(self.rocks_group)
         self.fish_group.update()
         self.rocks_group.update()
-        self.bird_group.update(self.fish_group)
-        self.miner_group.update()  # Update miners
+        
+        # Update based on current level
+        if self.current_level >= 3:
+            self.bird_group.update(self.fish_group)
+        
+        if self.current_level == 4:
+            self.miner_group.update()
         
         # Manage hit cooldown
         if self.miner_hit_cooldown > 0:
@@ -231,7 +288,10 @@ class SwimmingGame:
         
         # Handle interactions
         self._handle_fish_collisions()
-        self._handle_miner_collisions()
+        
+        # Add miner collisions only in level 4
+        if self.current_level == 4:
+            self._handle_miner_collisions()
         
         # Check if player is trapped
         if self._check_player_trapped_by_rocks():
@@ -244,6 +304,7 @@ class SwimmingGame:
         self._update_hunger()
         
         return True
+    
 
     def _spawn_rocks(self):
         """Spawn rocks at intervals."""
@@ -308,6 +369,42 @@ class SwimmingGame:
             
             # Replenish hunger
             self.current_hunger = min(self.max_hunger, self.current_hunger + self.hunger_replenish_amount * len(fish_eaten))
+    
+    def _draw_level_progress(self):
+        """Draw level progression indicator with continuous progress."""
+        # Progress bar settings
+        bar_width = 400
+        bar_height = 20
+        bar_x = (self.screen_width - bar_width) // 2
+        bar_y = 10
+        
+        # Background bar
+        pygame.draw.rect(self.screen, (200, 200, 200), (bar_x, bar_y, bar_width, bar_height))
+        
+        # Calculate progress segment width
+        total_segments = self.max_levels  # 4 segments between 5 dots
+        level_segment_width = bar_width / total_segments
+        
+        # Compute overall progress fraction
+        total_progress = min(self.current_level - 1 + (self.level_progress / 100), total_segments)
+        accumulated_progress_width = total_progress * level_segment_width  # Ensure max is bar_width
+        
+        # Draw accumulated green progress
+        pygame.draw.rect(self.screen, (0, 255, 0), (bar_x, bar_y, accumulated_progress_width, bar_height))
+        
+        # Level dots
+        dot_radius = 10
+        
+        for i in range(total_segments + 1):  # 5 dots total
+            dot_x = bar_x + i * level_segment_width
+            
+            # Determine dot color based on progress
+            if total_progress >= i:
+                dot_color = (0, 0, 255)  # Blue for reached dots
+            else:
+                dot_color = (100, 100, 100)  # Gray for future dots
+            
+            pygame.draw.circle(self.screen, dot_color, (int(dot_x), bar_y + bar_height // 2), dot_radius)
 
     def _calculate_heart_jiggle(self, heart_index: int) -> float:
         """Calculate jiggle offset for heart animation."""
@@ -419,17 +516,19 @@ class SwimmingGame:
         score_text = self.font.render(f"Score: {self.player.score}", True, (0, 0, 0))
         self.screen.blit(score_text, (10, 10))
         
+        # Level text
+        level_text = self.font.render(f"Level: {self.current_level}", True, (0, 0, 0))
+        self.screen.blit(level_text, (10, 50))
+        
         # Hunger bar
         self._draw_heart_hunger_bar()
+        
+        # Level progress bar
+        self._draw_level_progress()
         
         # FPS display
         fps = self.clock.get_fps()
         pygame.display.set_caption(f"Downstream. FPS: {fps:.2f}")
-
-    def _quit(self):
-        """Properly quit the game."""
-        pygame.quit()
-        sys.exit()
 
 def main():
     """Entry point for the game."""
