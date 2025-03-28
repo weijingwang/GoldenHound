@@ -1,6 +1,6 @@
 import pygame
 import math
-# import sys
+import sys
 
 def run_animation2():
     pygame.init()
@@ -31,7 +31,7 @@ def run_animation2():
     
     frame_count = 0
     running = True
-    k = 0.01  # Speed factor
+    k = 0.005  # Speed factor
     
     def lerp(a, b, t):
         return a + (b - a) * t
@@ -64,6 +64,8 @@ def run_animation2():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+                pygame.quit()
+                sys.exit()
         
         screen.fill((30, 30, 30))  
         screen.blit(back, (0, 0))

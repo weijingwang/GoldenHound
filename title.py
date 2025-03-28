@@ -15,8 +15,8 @@ class Button:
     def draw(self, surface):
         """Draw the button on the given surface."""
         current_color = self.hover_color if self.is_hovered else self.idle_color
-        pygame.draw.rect(surface, current_color, self.rect, border_radius=10)
-        pygame.draw.rect(surface, self.text_color, self.rect, 2, border_radius=10)
+        pygame.draw.rect(surface, current_color, self.rect, border_radius=1)
+        pygame.draw.rect(surface, self.text_color, self.rect, 2, border_radius=1)
         
         text_surface = self.font.render(self.text, True, self.text_color)
         text_rect = text_surface.get_rect(center=self.rect.center)
@@ -35,15 +35,15 @@ class TitleScreen:
         self.screen_width = 1280
         self.screen_height = 720
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
-        pygame.display.set_caption("Game Title")
+        pygame.display.set_caption("water dog")
         
         # Colors
-        self.WHITE = (255, 255, 255)
+        self.WHITE = (220, 220, 220)
         self.BLACK = (0, 0, 0)
         self.GRAY = (100, 100, 100)
         self.DARK_GRAY = (50, 50, 50)
-        self.LIGHT_BLUE = (100, 150, 255)
-        self.DARK_BLUE = (50, 100, 200)
+        self.LIGHT_BLUE = (113, 91, 100)
+        self.DARK_BLUE = (93, 70, 49)
         
         # Fonts
         self.title_font = pygame.font.Font(None, 120)
@@ -51,14 +51,14 @@ class TitleScreen:
         self.button_font = pygame.font.Font(None, 45)
         
         # Start Button
-        button_width = 300
-        button_height = 80
+        button_width = 250
+        button_height = 70
         button_x = (self.screen_width - button_width) // 2
-        button_y = self.screen_height // 2 + 200
+        button_y = self.screen_height // 2 + 250
         self.start_button = Button(
             button_x, button_y, 
             button_width, button_height, 
-            "START GAME", 
+            "Start game", 
             self.button_font, 
             self.DARK_BLUE, 
             self.LIGHT_BLUE, 
@@ -101,12 +101,12 @@ class TitleScreen:
     def _draw_text(self):
         """Draw title and subtitles."""
         # Main title
-        title_text = self.title_font.render("GAME TITLE", True, self.WHITE)
-        title_rect = title_text.get_rect(center=(self.screen_width//2, self.screen_height//2 - 150))
+        title_text = self.title_font.render("water dog", True, self.WHITE)
+        title_rect = title_text.get_rect(center=(self.screen_width//2, self.screen_height//2 - 250))
         
         # Second subtitle
-        subtitle_text = self.subtitle_font.render("New Adventure Awaits", True, self.WHITE)
-        subtitle_rect = subtitle_text.get_rect(center=(self.screen_width//2, self.screen_height//2 - 50))
+        subtitle_text = self.subtitle_font.render("art, code, music by speedlimit35", True, self.WHITE)
+        subtitle_rect = subtitle_text.get_rect(center=(self.screen_width//2, self.screen_height//2 + 200))
         
         # Draw text with a subtle shadow for better readability
         shadow_offset = 3
