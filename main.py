@@ -1,8 +1,6 @@
 import pygame
-import sys
 import math
-import random
-
+import sys
 # Assuming these are imported from separate files as in the original code
 from fish import Fish
 from utils import AssetManager, PerlinNoiseOverlay
@@ -10,6 +8,9 @@ from player import Player
 from rocks import Rock
 from bird import Bird
 from miner import Miner
+from title import TitleScreen
+from animate_intro import animate_intro1
+from animate_intro2 import run_animation2
 
 class SwimmingGame:
     """Main game class managing game state and loop."""
@@ -202,6 +203,9 @@ class SwimmingGame:
         # Clean up
         self._quit()
 
+    def _quit(self):
+        pygame.quit()
+        sys.exit()
 
     def _handle_events(self) -> bool:
         """Handle pygame events."""
@@ -553,6 +557,11 @@ class SwimmingGame:
 
 def main():
     """Entry point for the game."""
+    title_screen = TitleScreen()
+    title_screen.run()
+    animate_intro1()
+    run_animation2()
+
     game = SwimmingGame()
     game.run()
 
