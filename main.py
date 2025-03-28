@@ -109,22 +109,20 @@ class SwimmingGame:
         """Manage level progression."""
         # Increment level timer
         self.level_timer += 1
-        
+
         # Calculate progress percentage
         self.level_progress = min(100, (self.level_timer / self.level_duration) * 100)
-        
+
         # Check if level is complete
         if self.level_timer >= self.level_duration:
-            # Move to next level
-            self.current_level = min(self.current_level + 1, self.max_levels)
-            self.level_timer = 0
-            self.level_progress = 0
-            
-            # Reset spawn timers when changing levels
-            self.fish_spawn_timer = 0
-            self.rock_spawn_timer = 0
-            self.bird_spawn_timer = 0
-            self.miner_spawn_timer = 0
+            if self.current_level < self.max_levels:
+                self.current_level += 1
+                self.level_timer = 0
+                self.level_progress = 0
+            else:
+                # Stop the game when the max level is reached
+                self.game_over = True
+
 
     def _spawn_elements(self):
         """Spawn game elements based on current level."""
@@ -194,7 +192,7 @@ class SwimmingGame:
                 game_continues = self._update_game_state()
                 if not game_continues:
                     self.game_over = True
-            
+                
             # Drawing
             self._draw()
             
@@ -203,6 +201,7 @@ class SwimmingGame:
         
         # Clean up
         self._quit()
+
 
     def _handle_events(self) -> bool:
         """Handle pygame events."""
@@ -264,8 +263,17 @@ class SwimmingGame:
 
     def _update_game_state(self):
         """Update all game state elements."""
+        # If the game is already won, stop updates
+        if self.game_over:
+            return False
+
         # Update level progression
         self._update_level_progression()
+        
+        # Check if the player has reached the final level and completed it
+        if self.current_level == self.max_levels and self.level_timer >= self.level_duration:
+            self.game_over = True  # This now represents a win state
+            return False
         
         # Spawn game elements
         self._spawn_elements()
@@ -304,6 +312,7 @@ class SwimmingGame:
         self._update_hunger()
         
         return True
+
     
 
     def _spawn_rocks(self):
@@ -464,6 +473,14 @@ class SwimmingGame:
             else:
                 self.screen.blit(self.ghosted_heart, (heart_x, heart_y))
 
+    def _draw_win_screen(self):
+        """Display the win screen."""
+        win_text = self.death_font_large.render("You Win!", True, (255, 215, 0))  # Gold color
+        restart_text = self.death_font_small.render("Press R to Restart or Q to Quit", True, (255, 255, 255))
+
+        self.screen.blit(win_text, (self.screen_width // 2 - win_text.get_width() // 2, self.screen_height // 3))
+        self.screen.blit(restart_text, (self.screen_width // 2 - restart_text.get_width() // 2, self.screen_height // 2))
+
     def _draw(self):
         """Draw game elements."""
         # Background
@@ -478,8 +495,12 @@ class SwimmingGame:
             # Draw UI elements
             self._draw_ui()
         else:
-            # Draw death screen
-            self._draw_death_screen()
+
+            # If the player won, show the win screen
+            if self.current_level == self.max_levels and self.level_timer >= self.level_duration:
+                self._draw_win_screen()
+            else:
+                self._draw_death_screen()
         
         # Update display
         self.noise_overlay.update()
