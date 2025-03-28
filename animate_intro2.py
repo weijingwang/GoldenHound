@@ -1,14 +1,15 @@
 import pygame
 import math
 import sys
-
+from utils import PerlinNoiseOverlay
 def run_animation2():
     pygame.init()
     
     WIDTH, HEIGHT = 1280, 720
     FPS = 60
     FADE_DURATION = 2  # Duration for fade-out effect
-    
+    noise_overlay = PerlinNoiseOverlay(1280, 720, 200, 150, scale=0.5, alpha=20)
+
     # Load assets
     player_images = [pygame.image.load(f"assets/images/player{i}.png") for i in range(1, 8)]
     back = pygame.image.load("assets/images/river_back.png")
@@ -99,7 +100,9 @@ def run_animation2():
             
             if fade_alpha >= 255:
                 running = False
-        
+        noise_surface = noise_overlay.generate()
+        screen.blit(noise_surface, (0, 0))
+        noise_overlay.update()
         pygame.display.flip()
         frame_count += 1
         clock.tick(FPS)
