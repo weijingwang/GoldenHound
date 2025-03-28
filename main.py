@@ -16,29 +16,39 @@ class Bird(pygame.sprite.Sprite):
         
         # Load eagle image
         try:
-            self.image = pygame.image.load("assets/images/eagle.png").convert_alpha()
+            self.original_image = pygame.image.load("assets/images/eagle.png").convert_alpha()
             # Scale the image to an appropriate size
-            self.image = pygame.transform.scale(self.image, (100, 70))
+            # self.original_image = pygame.transform.scale(original_image, (100, 70))
+            self.image = self.original_image.copy()
+            self.width, self.height = self.image.get_size()
         except Exception as e:
             print(f"Error loading bird image: {e}")
             # Fallback to a colored rectangle if image fails
-            self.image = pygame.Surface((100, 70))
-            self.image.fill((139, 69, 19))  # Brown color
+            self.original_image = pygame.Surface((100, 70), pygame.SRCALPHA)
+            self.original_image.fill((139, 69, 19))  # Brown color
+            self.image = self.original_image.copy()
+            self.width, self.height = self.image.get_size()
+
+        # eagle sound
+        self.bird_sound = asset_manager.load_sound("assets/sounds/bird.ogg", 0.8)
+
+        # Randomly choose entry side with offset to ensure completely off-screen
+        entry_side = random.choice(['bottom', 'right', 'top'])
         
-        # Randomly choose entry side
-        entry_side = random.choice(['left', 'right', 'top'])
-        
-        # Set initial position based on entry side
-        if entry_side == 'left':
-            self.rect = self.image.get_rect(midleft=(-100, random.randint(0, screen_height)))
-            self.speed_x = random.uniform(3, 6)
+        # Set initial position based on entry side, ensuring fully off-screen
+        if entry_side == 'bottom':
+            self.rect = self.image.get_rect(midbottom=(screen_width + self.width, 
+                                                       random.randint(-self.height, screen_height + self.height)))
+            self.speed_x = -random.uniform(3, 6)
             self.speed_y = random.uniform(-1, 1)
         elif entry_side == 'right':
-            self.rect = self.image.get_rect(midright=(screen_width + 100, random.randint(0, screen_height)))
+            self.rect = self.image.get_rect(midright=(screen_width + self.width, 
+                                                      random.randint(-self.height, screen_height + self.height)))
             self.speed_x = -random.uniform(3, 6)
             self.speed_y = random.uniform(-1, 1)
         else:  # top
-            self.rect = self.image.get_rect(midtop=(random.randint(0, screen_width), -100))
+            self.rect = self.image.get_rect(midtop=(random.randint(-self.width, screen_width + self.width), 
+                                                    -self.height))
             self.speed_x = random.uniform(-1, 1)
             self.speed_y = random.uniform(3, 6)
         
@@ -51,6 +61,14 @@ class Bird(pygame.sprite.Sprite):
     def update(self, fish_group):
         """Update bird movement and fish hunting behavior."""
         if not self.hunting:
+            # Calculate movement angle
+            # Subtract 90 degrees to align the top of the image with movement direction
+            movement_angle = math.degrees(math.atan2(-self.speed_y, self.speed_x)) - 90
+            
+            # Rotate the image based on movement direction
+            self.image = pygame.transform.rotate(self.original_image, movement_angle)
+            self.rect = self.image.get_rect(center=self.rect.center)
+            
             # Normal flight movement
             self.rect.x += self.speed_x
             self.rect.y += self.speed_y
@@ -71,6 +89,7 @@ class Bird(pygame.sprite.Sprite):
             self.eat_timer += 1
             if self.eat_timer >= self.eat_delay:
                 # Remove the fish
+                self.bird_sound.play()
                 self.target_fish.kill()
                 self.target_fish = None
                 self.hunting = False
