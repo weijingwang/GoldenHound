@@ -15,9 +15,7 @@ from animate_intro2 import run_animation2
 class SwimmingGame:
     """Main game class managing game state and loop."""
     def __init__(self):
-        # Initialize Pygame
-        pygame.init()
-        pygame.mixer.init()
+
         
         # Screen setup
         self.screen_width = 1280
@@ -557,6 +555,12 @@ class SwimmingGame:
 
 def main():
     """Entry point for the game."""
+    # Initialize Pygame
+    pygame.init()
+    pygame.mixer.init()
+    pygame.mixer.music.load("assets/sounds/mountain.ogg")
+    pygame.mixer.music.set_volume(0.2)
+    pygame.mixer.music.play(-1)
     title_screen = TitleScreen()
     title_screen.run()
     animate_intro1()
