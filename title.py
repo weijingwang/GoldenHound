@@ -215,6 +215,8 @@ class TitleScreen:
         """Handle pygame events, return False to quit."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
                 return False
                 
             # Additional event handling for button hover

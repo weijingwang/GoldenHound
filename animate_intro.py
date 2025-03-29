@@ -127,9 +127,13 @@ class CurveAnimation:
         if back == 0:
             self.player_images = [pygame.image.load(f"assets/images/player/player1_{i}.png") for i in range(1, 8)]
             self.back = pygame.image.load("assets/images/river_back.png")
-        else:
+        elif back ==1:
             self.player_images = [pygame.image.load(f"assets/images/player/player4_{i}.png") for i in range(1, 8)]
             self.back = pygame.image.load("assets/images/river_forest.png")
+        else:
+            self.player_images = [pygame.image.load(f"assets/images/player/player4_{i}.png") for i in range(1, 8)]
+            self.back = pygame.image.load("assets/images/end_frame_1.png")
+
 
         # Create noise overlay
         self.noise_overlay = PerlinNoiseOverlay(width, height, 200, 150, scale=0.5, alpha=20)

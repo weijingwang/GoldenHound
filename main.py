@@ -32,8 +32,8 @@ def main():
     end_1 = CurveAnimation(start_size=20, end_size=400, k=0.005, back=1)
     end_1.set_waypoints([(508, 390), (600, 475), (415, 529), (590, 672)])
     
-    end_3 = CurveAnimation(start_size=20, end_size=400, k=0.005, back=1)
-    end_3.set_waypoints([(508, 390), (600, 475), (415, 529), (590, 672)])
+    end_3 = CurveAnimation(start_size=20, end_size=400, k=0.005, back=2)
+    end_3.set_waypoints([(448, 341), (576, 434), (328, 581), (1231, 683)])
 
     # Load all end game images
     end_2_img = pygame.image.load("assets/images/end_frame_2.png").convert_alpha()
@@ -58,6 +58,10 @@ def main():
     end_3_complete = False
 
     while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
         # Calculate delta time in seconds
         dt = clock.tick(60) / 1000.0  # Convert milliseconds to seconds
         

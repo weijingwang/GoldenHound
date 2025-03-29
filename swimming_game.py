@@ -56,17 +56,17 @@ class SwimmingGame:
     
         # Level gold piece requirements
         self.level_gold_requirements = {
-            1: 1,   # 10 gold pieces to reach level 2
-            2: 2,   # 20 gold pieces to reach level 3
-            3: 3,   # 30 gold pieces to reach level 4
-            4: 4    # 40 gold pieces to win the game
+            1: 5,   # 10 gold pieces to reach level 2
+            2: 10,   # 20 gold pieces to reach level 3
+            3: 15,   # 30 gold pieces to reach level 4
+            4: 20    # 40 gold pieces to win the game
         }
             
         # Level spawn configuration
         self.level_spawn_config = {
-            1: {'fish': True, 'rocks': False, 'birds': False, 'miners': True},
-            2: {'fish': True, 'rocks': True, 'birds': False, 'miners': True},
-            3: {'fish': True, 'rocks': True, 'birds': True, 'miners': False},
+            1: {'fish': True, 'rocks': False, 'birds': True, 'miners': False},
+            2: {'fish': True, 'rocks': True, 'birds': True, 'miners': False},
+            3: {'fish': True, 'rocks': True, 'birds': True, 'miners': True},
             4: {'fish': True, 'rocks': True, 'birds': True, 'miners': True}
         }
 
