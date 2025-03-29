@@ -11,6 +11,7 @@ class Button:
         self.hover_color = hover_color
         self.text_color = text_color
         self.is_hovered = False
+        self.is_clicked = False
     
     def draw(self, surface):
         """Draw the button on the given surface."""
@@ -22,10 +23,17 @@ class Button:
         text_rect = text_surface.get_rect(center=self.rect.center)
         surface.blit(text_surface, text_rect)
     
-    def handle_event(self, event):
-        """Check if mouse is hovering over the button."""
-        if event.type == pygame.MOUSEMOTION:
-            self.is_hovered = self.rect.collidepoint(event.pos)
+    def update(self, mouse_pos, mouse_clicked):
+        """Update button state based on mouse position and click."""
+        previous_hover = self.is_hovered
+        self.is_hovered = self.rect.collidepoint(mouse_pos)
+        
+        # Check for click
+        if self.is_hovered and mouse_clicked:
+            self.is_clicked = True
+            return True
+        
+        return False
 
 class TitleScreen:
     def __init__(self):
@@ -75,11 +83,14 @@ class TitleScreen:
         self.fade_alpha = 0
         self.fade_speed = 3
         self.hold_timer = 0
-        self.HOLD_TIME = 800  # 500 ms
+        self.HOLD_TIME = 800  # 800 ms
         
         # Initial fade-in variables
         self.is_first_fade = True
         self.first_fade_alpha = 0
+        
+        # State tracking
+        self.completed = False
         
         # Clock for controlling frame rate
         self.clock = pygame.time.Clock()
@@ -124,13 +135,13 @@ class TitleScreen:
         # Draw start button
         self.start_button.draw(self.screen)
     
-    def _handle_first_fade_in(self, screen):
+    def _handle_first_fade_in(self):
         """Handle initial fade-in of the first background image."""
         if self.is_first_fade:
             # Create a surface with the first background image
             first_bg = self.background_images[self.current_bg_index].copy()
             first_bg.set_alpha(self.first_fade_alpha)
-            screen.blit(first_bg, (0, 0))
+            self.screen.blit(first_bg, (0, 0))
             
             # Increase fade alpha
             self.first_fade_alpha += 5
@@ -168,54 +179,65 @@ class TitleScreen:
                 self.hold_timer = 0
                 self.fade_alpha = 0
     
-    def run(self):
-        """Main game loop for title screen."""
-        running = True
-        while running:
-            # Handle events
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                    pygame.quit()
-                    sys.exit()
-                # Handle button hover
-                self.start_button.handle_event(event)
-                
-                # Check for button click
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1 and self.start_button.is_hovered:
-                        running = False
+    def update(self):
+        """Update title screen state for one frame. Returns True when completed."""
+        if self.completed:
+            return True
             
-            # Clear screen
-            self.screen.fill(self.BLACK)
-            
-            # Cycle backgrounds or handle first fade-in
-            if self.is_first_fade:
-                self._handle_first_fade_in(self.screen)
-            else:
-                self._cycle_backgrounds()
-            
-            # Draw text and button
-            self._draw_text()
-            
-            # Update display
-            pygame.display.flip()
-            
-            # Control frame rate
-            self.clock.tick(60)
+        # Update button with mouse state
+        mouse_pos = pygame.mouse.get_pos()
+        mouse_clicked = pygame.mouse.get_pressed()[0]  # Left mouse button
         
-    #     pygame.quit()
-    #     sys.exit()
+        # Check if button is clicked
+        if self.start_button.update(mouse_pos, mouse_clicked):
+            self.completed = True
+            return True
+            
+        return False
     
-    # def _start_game(self):
-    #     """Placeholder for game start method."""
-    #     print("Starting game...")
-    #     pygame.quit()
-    #     sys.exit()
-
-# def main():
-#     title_screen = TitleScreen()
-#     title_screen.run()
-
-# if __name__ == "__main__":
-#     main()
+    def render(self):
+        """Render the title screen."""
+        # Clear screen
+        self.screen.fill(self.BLACK)
+        
+        # Cycle backgrounds or handle first fade-in
+        if self.is_first_fade:
+            self._handle_first_fade_in()
+        else:
+            self._cycle_backgrounds()
+        
+        # Draw text and button
+        self._draw_text()
+        
+        # Update display
+        pygame.display.flip()
+    
+    def handle_events(self):
+        """Handle pygame events, return False to quit."""
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+                
+            # Additional event handling for button hover
+            if event.type == pygame.MOUSEMOTION:
+                self.start_button.is_hovered = self.start_button.rect.collidepoint(event.pos)
+                
+        return True
+    
+    def tick(self):
+        """Control frame rate."""
+        self.clock.tick(60)
+    
+    def is_completed(self):
+        """Check if title screen is completed (button clicked)."""
+        return self.completed
+    
+    def reset(self):
+        """Reset title screen to initial state."""
+        self.current_bg_index = 0
+        self.next_bg_index = 1
+        self.fade_alpha = 0
+        self.hold_timer = 0
+        self.is_first_fade = True
+        self.first_fade_alpha = 0
+        self.completed = False

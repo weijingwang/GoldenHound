@@ -180,7 +180,7 @@ class Player(pygame.sprite.Sprite):
         # Bottom boundary
         self.rect.bottom = min(self.screen_height, self.rect.bottom)
         
-        print(self.is_moving, self.sound_playing)
+        # print(self.is_moving, self.sound_playing)
         # Manage sound playback only when actually moving
         # if self.is_moving:
         self._manage_movement_sound()
