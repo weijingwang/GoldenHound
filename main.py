@@ -19,7 +19,7 @@ def main():
     pygame.mixer.music.play(-1)
     
     # Main game state
-    current_state = "swimming"
+    current_state = "title"
     previous_state = None  # Track the previous state
     running = True
 
@@ -58,7 +58,7 @@ def main():
     end_3_complete = False
 
     while running:
-        print(current_state)
+        # print(current_state)
         # for event in pygame.event.get():
         #     if event.type == pygame.QUIT:
         #         pygame.quit()
@@ -94,6 +94,11 @@ def main():
             running = end_1.handle_events()
         elif current_state == "end_3":
             running = end_3.handle_events()
+        else:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
             
         # Update based on current state
         if current_state == "title":
