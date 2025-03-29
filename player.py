@@ -92,7 +92,11 @@ class Player(pygame.sprite.Sprite):
             pygame.K_w: (0, -self.speed),
             pygame.K_s: (0, self.speed),
             pygame.K_a: (-self.speed, 0),
-            pygame.K_d: (self.speed, 0)
+            pygame.K_d: (self.speed, 0),
+            pygame.K_UP: (0, -self.speed),
+            pygame.K_DOWN: (0, self.speed),
+            pygame.K_LEFT: (-self.speed, 0),
+            pygame.K_RIGHT: (self.speed, 0)
         }
         
         # Player's desired movement
