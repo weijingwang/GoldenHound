@@ -16,7 +16,7 @@ Golden Hound is a game about a hungry dog that jumps into the water for fish. Th
 
 
 ## Controls
-WASD to move dog
+WASD / Arrow keys to move dog
 
 ## Requirements
 Python 3.12.8
