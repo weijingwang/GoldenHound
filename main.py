@@ -61,10 +61,10 @@ class SwimmingGame:
     
         # Level gold piece requirements
         self.level_gold_requirements = {
-            1: 5,   # 10 gold pieces to reach level 2
-            2: 10,   # 20 gold pieces to reach level 3
-            3: 15,   # 30 gold pieces to reach level 4
-            4: 20    # 40 gold pieces to win the game
+            1: 1,   # 10 gold pieces to reach level 2
+            2: 2,   # 20 gold pieces to reach level 3
+            3: 3,   # 30 gold pieces to reach level 4
+            4: 4    # 40 gold pieces to win the game
         }
             
         # Level spawn configuration
@@ -131,6 +131,7 @@ class SwimmingGame:
 
         # Check if level is complete
         if self.level_timer >= self.level_duration:
+            print('asdfasd')
             if self.current_level < self.max_levels:
                 self.current_level += 1
                 self.level_timer = 0
@@ -294,9 +295,9 @@ class SwimmingGame:
     def _spawn_miners(self):
         """Spawn miners at intervals."""
         self.miner_spawn_timer += 1
-        print(f"Miner spawn timer: {self.miner_spawn_timer}, Delay: {self.miner_spawn_delay}")  # Debug print
+        # print(f"Miner spawn timer: {self.miner_spawn_timer}, Delay: {self.miner_spawn_delay}")  # Debug print
         if self.miner_spawn_timer >= self.miner_spawn_delay:
-            print("Spawning miner!")  # Debug print
+            # print("Spawning miner!")  # Debug print
             new_miner = Miner(self.asset_manager, self.screen_width, self.screen_height)
             self.miner_group.add(new_miner)
             self.all_sprites.add(new_miner)
@@ -353,6 +354,8 @@ class SwimmingGame:
         if self.current_level < self.max_levels:
             if self.collected_gold_pieces >= self.level_gold_requirements[self.current_level]:
                 # Advance to next level
+                self.player.set_level(self.asset_manager, self.current_level +1)
+
                 self.current_level += 1
         else:
             # Check if we've collected enough gold pieces to win the game

@@ -3,28 +3,26 @@ import math
 
 class Player(pygame.sprite.Sprite):
     """Represents the player character in the game."""
-    def __init__(self, asset_manager, x, y, screen_width, screen_height):
+    def __init__(self, asset_manager, x, y, screen_width, screen_height, current_level=1):
         super().__init__()
         
         # Screen dimensions for boundary checks
         self.screen_width = screen_width
         self.screen_height = screen_height
         
-        # Load animation frames
-        self.animation_frames = [
-            asset_manager.load_image(f'assets/images/player{i}.png') 
-            for i in range(1, 8)
-        ]
+        # Set current level
+        self.current_level = current_level
         
-        # Load special state images and sounds
-        self.eating_image = asset_manager.load_image("assets/images/player_eat.png")
-        self.eat_sound = asset_manager.load_sound("assets/sounds/CLICK.ogg", 0.2)
-        self.move_sound = asset_manager.load_sound("assets/sounds/swim.ogg", 0.2)
-
+        # Load animation frames based on current level
+        self._load_player_assets(asset_manager)
+        
         # Animation and state management
         self.current_frame = 0
         self.animation_timer = 0
         self.animation_speed = 5
+        
+        # Direction tracking (1 for right, -1 for left)
+        self.facing_right = True
         
         # Eating state
         self.is_eating = False
@@ -50,6 +48,30 @@ class Player(pygame.sprite.Sprite):
         
         # Score
         self.score = 0
+
+    def _load_player_assets(self, asset_manager):
+        """Load player assets based on current level."""
+        # Load animation frames for current level
+        self.animation_frames = [
+            asset_manager.load_image(f'assets/images/player/player{self.current_level}_{i}.png') 
+            for i in range(1, 8)
+        ]
+        
+        # Load special state images
+        self.eating_image = asset_manager.load_image(f"assets/images/player/player{self.current_level}_eat.png")
+        
+        # Load sounds (these don't change with level)
+        self.eat_sound = asset_manager.load_sound("assets/sounds/CLICK.ogg", 0.2)
+        self.move_sound = asset_manager.load_sound("assets/sounds/swim.ogg", 0.2)
+
+    def set_level(self, asset_manager, level):
+        """Update player assets when level changes."""
+        self.current_level = level
+        print("NEXT!!")
+        self._load_player_assets(asset_manager)
+        # Reset to first frame
+        self.current_frame = 0
+        self.image = self.animation_frames[0]
 
     def handle_input(self, rocks):
         """
@@ -84,6 +106,12 @@ class Player(pygame.sprite.Sprite):
                 player_dx += dx
                 player_dy += dy
                 self.is_moving = True
+                
+                # Update facing direction based on horizontal movement
+                if key == pygame.K_d and dx > 0:
+                    self.facing_right = True
+                elif key == pygame.K_a and dx < 0:
+                    self.facing_right = False
         
         # Normalize diagonal movement speed
         if len(pressed_keys) == 2:  # Diagonal movement
@@ -121,7 +149,7 @@ class Player(pygame.sprite.Sprite):
                 
                 # Push out based on the smallest overlap
                 if min_overlap == overlap_left:
-                    self.rect.right = rock.rect.left - self.speed *2
+                    self.rect.right = rock.rect.left - self.speed * 2
                 elif min_overlap == overlap_right:
                     self.rect.left = rock.rect.right + self.speed
                 elif min_overlap == overlap_top:
@@ -156,8 +184,6 @@ class Player(pygame.sprite.Sprite):
         if self.is_moving:
             self._manage_movement_sound()
 
-    # Rest of the methods remain the same as in the original code
-
     def _manage_movement_sound(self):
         """Manage swimming sound based on movement state."""
         if self.is_moving:
@@ -179,7 +205,17 @@ class Player(pygame.sprite.Sprite):
         if self.animation_timer >= self.animation_speed:
             self.animation_timer = 0
             
-            self.current_frame = (self.current_frame + 1) % len(self.animation_frames) if self.is_moving else 0
+            if self.is_moving:
+                if self.facing_right:
+                    # Normal animation order when moving right
+                    self.current_frame = (self.current_frame + 1) % len(self.animation_frames)
+                else:
+                    # Reverse animation order when moving left
+                    self.current_frame = (self.current_frame - 1) % len(self.animation_frames)
+            else:
+                # Reset to first frame when not moving
+                self.current_frame = 0
+                
             self.image = self.animation_frames[self.current_frame]
 
     def swimming_bob(self):
