@@ -593,6 +593,7 @@ class SwimmingGame:
                     self.screen.blit(self.full_heart_image, (heart_x, heart_y))
                 elif self.current_hunger % 2 == 1:
                     # Half heart
+                    self.screen.blit(self.ghosted_heart, (heart_x, heart_y))
                     self.screen.blit(self.half_heart_image, (heart_x, heart_y))
             else:
                 # Ghosted/empty hearts
