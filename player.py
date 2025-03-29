@@ -62,7 +62,7 @@ class Player(pygame.sprite.Sprite):
         
         # Load sounds (these don't change with level)
         self.eat_sound = asset_manager.load_sound("assets/sounds/CLICK.ogg", 0.2)
-        self.move_sound = asset_manager.load_sound("assets/sounds/swim.ogg", 0.2)
+        self.move_sound = asset_manager.load_sound("assets/sounds/swim.ogg", 0.15)
 
     def set_level(self, asset_manager, level):
         """Update player assets when level changes."""

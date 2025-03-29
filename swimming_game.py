@@ -127,8 +127,8 @@ class SwimmingGame:
         self.collected_gold_pieces = preserved_gold
         
         # Reset player
-        self.player = Player(self.asset_manager, self.screen_width // 2, self.screen_height // 2, self.screen_width, self.screen_height)
-        
+        self.player = Player(self.asset_manager, self.screen_width // 2, self.screen_height // 2, self.screen_width, self.screen_height, self.current_level)
+
         # Clear sprite groups
         self.all_sprites.empty()
         self.fish_group.empty()
