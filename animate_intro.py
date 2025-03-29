@@ -88,9 +88,8 @@ class Animation:
 
 
 
-
 class CurveAnimation:
-    def __init__(self, width=1280, height=720, fps=60):
+    def __init__(self, start_size=200, end_size=20, k=0.005, back=0, width=1280, height=720, fps=60):
         # Initialize display parameters
         self.WIDTH = width
         self.HEIGHT = height
@@ -104,21 +103,35 @@ class CurveAnimation:
         self.fade_start = 0
         
         # Animation parameters
-        self.start_size = 200
-        self.end_size = 20
-        self.animation_duration = 3
-        self.k = 0.005  # Speed factor
+        self.start_size = start_size
+        self.end_size = end_size
+        self.k = k  # Speed factor
+        
+        # Determine if we're growing or shrinking
+        self.is_growing = end_size > start_size
+        
+        # Set fade trigger size based on animation direction
+        if self.is_growing:
+            # If growing, trigger fade when close to target size
+            self.fade_trigger_size = end_size * 0.9  # Start fade at 90% of target size
+        else:
+            # If shrinking, trigger fade when small enough (as in original)
+            self.fade_trigger_size = 45
         
         # Load assets
         pygame.init()
         self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
-        pygame.display.set_caption("Sharper Turns Animation")
+        pygame.display.set_caption("Size Animation")
         self.clock = pygame.time.Clock()
         
         # Load images
-        self.player_images = [pygame.image.load(f"assets/images/player/player1_{i}.png") for i in range(1, 8)]
-        self.back = pygame.image.load("assets/images/river_back.png")
-        
+        if back == 0:
+            self.player_images = [pygame.image.load(f"assets/images/player/player1_{i}.png") for i in range(1, 8)]
+            self.back = pygame.image.load("assets/images/river_back.png")
+        else:
+            self.player_images = [pygame.image.load(f"assets/images/player/player4_{i}.png") for i in range(1, 8)]
+            self.back = pygame.image.load("assets/images/river_forest.png")
+
         # Create noise overlay
         self.noise_overlay = PerlinNoiseOverlay(width, height, 200, 150, scale=0.5, alpha=20)
         
@@ -130,6 +143,18 @@ class CurveAnimation:
         # pygame.mixer.init()
         # pygame.mixer.music.load("assets/sound/music.mp3")
         # pygame.mixer.music.play(-1)
+        
+    def handle_events(self):
+        """Handle pygame events, return False to quit"""
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+        return True
+    
+    def set_waypoints(self, waypoints):
+        """Set custom waypoints for the animation path"""
+        self.waypoints = waypoints
+        self.segments = self.generate_control_points(self.waypoints)
     
     def lerp(self, a, b, t):
         """Linear interpolation between a and b at time t"""
@@ -164,8 +189,16 @@ class CurveAnimation:
         t = 1 - math.exp(-self.k * self.frame_count)
         size = self.lerp(self.start_size, self.end_size, t)
         
-        # Start fade out when character becomes small enough
-        if size <= 45 and not self.fading:
+        # Check fade trigger condition based on animation direction
+        if self.is_growing:
+            # For growing, start fade when close enough to target size
+            fade_condition = size >= self.fade_trigger_size
+        else:
+            # For shrinking, start fade when small enough
+            fade_condition = size <= self.fade_trigger_size
+        
+        # Start fade out when trigger condition is met
+        if fade_condition and not self.fading:
             self.fading = True
             self.fade_start = pygame.time.get_ticks()
         
@@ -190,17 +223,19 @@ class CurveAnimation:
         size = self.lerp(self.start_size, self.end_size, t)
         
         # If not fully faded, draw the player
-        if not self.fading:
+        if not self.fading or self.fade_alpha < 255:
             num_segments = len(self.segments)
             seg_t = (t * num_segments) % 1
             seg_index = min(int(t * num_segments), num_segments - 1)
             pos = self.bezier_curve(*self.segments[seg_index], seg_t)
             
             img_index = (self.frame_count // 5) % len(self.player_images)
-            player_img = pygame.transform.scale(self.player_images[img_index], (int(size), int(size)))
             
-            if size > 0:
-                self.screen.blit(player_img, (int(pos[0] - size // 2), int(pos[1] - size // 2)))
+            # Ensure size is at least 1 to avoid scaling errors
+            current_size = max(1, int(size))
+            player_img = pygame.transform.scale(self.player_images[img_index], (current_size, current_size))
+            
+            self.screen.blit(player_img, (int(pos[0] - current_size // 2), int(pos[1] - current_size // 2)))
         
         # Apply fade effect if fading
         if self.fading:
@@ -216,18 +251,6 @@ class CurveAnimation:
         
         # Update display
         pygame.display.flip()
-    
-    def handle_events(self):
-        """Handle pygame events, return False to quit"""
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return False
-        return True
-    
-    def tick(self):
-        """Advance the clock"""
-        self.clock.tick(self.FPS)
-
 
 
 class GameIntro:
@@ -290,7 +313,10 @@ class GameIntro:
         if self.current_animation == "intro":
             return self.intro_animation.handle_events()
         elif self.current_animation == "character":
-            return self.character_animation.handle_events()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return False
+            # return self.character_animation.handle_events()
         elif self.current_animation == "transition":
             # Handle events during transition
             for event in pygame.event.get():
@@ -309,7 +335,7 @@ class GameIntro:
             # The update method already calls tick
             pass
         elif self.current_animation == "character":
-            self.character_animation.tick()
+            self.character_animation.clock.tick()
     
     def is_completed(self):
         """Check if all animations are complete"""

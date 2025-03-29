@@ -241,3 +241,5 @@ class TitleScreen:
         self.is_first_fade = True
         self.first_fade_alpha = 0
         self.completed = False
+
+        
