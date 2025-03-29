@@ -19,7 +19,7 @@ def main():
     pygame.mixer.music.play(-1)
     
     # Main game state
-    current_state = "title"
+    current_state = "swimming"
     previous_state = None  # Track the previous state
     running = True
 
@@ -58,10 +58,11 @@ def main():
     end_3_complete = False
 
     while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+        print(current_state)
+        # for event in pygame.event.get():
+        #     if event.type == pygame.QUIT:
+        #         pygame.quit()
+        #         sys.exit()
         # Calculate delta time in seconds
         dt = clock.tick(60) / 1000.0  # Convert milliseconds to seconds
         
@@ -81,27 +82,6 @@ def main():
             
             previous_state = current_state
         
-        # Handle events based on current state
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    running = False
-                # Allow skipping through end scenes with any key
-                if current_state.startswith("end") and event.key in (pygame.K_SPACE, pygame.K_RETURN):
-                    if current_state == "end":
-                        current_state = "end_2"
-                    elif current_state == "end_2":
-                        current_state = "end_3"
-                    elif current_state == "end_3":
-                        current_state = "end_4"
-                    elif current_state == "end_4":
-                        current_state = "end_5"
-                    elif current_state == "end_5":
-                        current_state = "end_6"
-                    elif current_state == "end_6":
-                        current_state = "end_7"
         
         # Additional event handling from original code
         if current_state == "title":
