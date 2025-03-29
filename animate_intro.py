@@ -121,7 +121,6 @@ class CurveAnimation:
         # Load assets
         pygame.init()
         self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
-        pygame.display.set_caption("Size Animation")
         self.clock = pygame.time.Clock()
         
         # Load images
@@ -143,7 +142,7 @@ class CurveAnimation:
         # pygame.mixer.init()
         # pygame.mixer.music.load("assets/sound/music.mp3")
         # pygame.mixer.music.play(-1)
-        
+
     def handle_events(self):
         """Handle pygame events, return False to quit"""
         for event in pygame.event.get():

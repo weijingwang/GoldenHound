@@ -19,7 +19,6 @@ class SwimmingGame:
         self.screen_width = 1280
         self.screen_height = 720
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
-        pygame.display.set_caption("Downstream")
         
         # Asset management
         self.asset_manager = AssetManager()
@@ -57,10 +56,10 @@ class SwimmingGame:
     
         # Level gold piece requirements
         self.level_gold_requirements = {
-            1: 2,   # 10 gold pieces to reach level 2
-            2: 4,   # 20 gold pieces to reach level 3
-            3: 6,   # 30 gold pieces to reach level 4
-            4: 8    # 40 gold pieces to win the game
+            1: 1,   # 10 gold pieces to reach level 2
+            2: 2,   # 20 gold pieces to reach level 3
+            3: 3,   # 30 gold pieces to reach level 4
+            4: 4    # 40 gold pieces to win the game
         }
             
         # Level spawn configuration
@@ -71,51 +70,6 @@ class SwimmingGame:
             4: {'fish': True, 'rocks': True, 'birds': True, 'miners': True}
         }
 
-    def _init_game_parameters(self):
-        """Initialize game state parameters."""
-        # Gold piece collection
-        self.gold_pieces_group = pygame.sprite.Group()
-        self.gold_piece_spawn_timer = 0
-        self.gold_piece_spawn_delay = 300  # Adjust spawning frequency
-        self.collected_gold_pieces = 0
-        self.gold_pieces_needed_for_level = 10  # Collect 10 gold pieces to progress
-        
-        # Replace level_timer with gold piece progression
-        self.current_gold_pieces = 0
-
-        # Spawn timers
-        self.fish_spawn_timer = 0
-        self.fish_spawn_delay = 60
-        self.rock_spawn_timer = 0
-        self.rock_spawn_delay = 100
-
-        # Add bird group
-        self.bird_group = pygame.sprite.Group()
-        
-        # Bird spawn parameters
-        self.bird_spawn_timer = 0
-        self.bird_spawn_delay = 500  # Infrequent bird spawns
-        
-        # Add miner spawn parameters
-        self.miner_spawn_timer = 0
-        self.miner_spawn_delay = 300  # Adjust spawn rate as needed
-        
-        # Miner hit cooldown to prevent multiple hits at once
-        self.miner_hit_cooldown = 0
-
-        # Hunger system
-        self.max_hunger = 10  # 10 half-hearts
-        self.current_hunger = self.max_hunger
-        self.hunger_decrease_rate = 0.1
-        self.hunger_decrease_timer = 0
-        self.hunger_decrease_interval = 100
-        self.hunger_replenish_amount = 2
-        
-        # Heart animation
-        self.heart_jiggle_time = 0
-        
-        # Game state
-        self.game_over = False
 
     def _update_level_progression(self):
         """Manage level progression."""
@@ -136,69 +90,6 @@ class SwimmingGame:
                 # Stop the game when the max level is reached
                 self.game_over = True
 
-
-    def _spawn_elements(self):
-        """Spawn game elements based on current level."""
-        current_config = self.level_spawn_config[self.current_level]
-        
-        # Spawn fish (always active)
-        self._spawn_fish()
-        
-        # Conditional spawns based on current level
-        if current_config['rocks']:
-            self._spawn_rocks()
-        
-        if current_config['birds']:
-            self._spawn_birds()
-        
-        if current_config['miners']:
-            self._spawn_miners()
-        
-        # Spawn gold pieces
-        self._spawn_gold_pieces()
-
-    def _load_game_assets(self):
-        """Load game images and fonts."""
-        self.texture = pygame.image.load("assets/images/texture.png").convert_alpha()
-        # Heart images
-        try:
-            full_heart_sheet = pygame.image.load("assets/images/player6.png").convert_alpha()
-            half_heart_sheet = pygame.image.load("assets/images/player_half.png").convert_alpha()
-            
-            # Heart image scaling
-            heart_size = (50, 50)
-            self.full_heart_image = self._process_heart_image(full_heart_sheet, heart_size)
-            self.half_heart_image = self._process_heart_image(half_heart_sheet, heart_size)
-            
-            # Ghosted heart for empty states
-            self.ghosted_heart = self.full_heart_image.copy()
-            self.ghosted_heart.set_alpha(50)
-        except Exception as e:
-            print(f"Error loading heart images: {e}")
-            self.full_heart_image = None
-            self.half_heart_image = None
-            self.ghosted_heart = None
-        
-        # Fonts and sound
-        self.font = pygame.font.Font(None, 36)
-        self.coin_sound = self.asset_manager.load_sound("assets/sounds/coins.ogg", 0.5)
-        self.miner_sound = self.asset_manager.load_sound("assets/sounds/miner.ogg", 0.2)
-
-        self._setup_background_music()
-
-    def _process_heart_image(self, sheet: pygame.Surface, size: tuple) -> pygame.Surface:
-        """Process heart image from sprite sheet."""
-        heart_image = sheet.subsurface((0, 0, sheet.get_height(), sheet.get_height()))
-        return pygame.transform.scale(heart_image, size)
-
-    def _setup_background_music(self):
-        """Set up and play background music."""
-        try:
-            pygame.mixer.music.load("assets/sounds/pastoral_cut.ogg")
-            pygame.mixer.music.set_volume(0.3)
-            pygame.mixer.music.play(-1)
-        except pygame.error as e:
-            print(f"Error loading background music: {e}")
 
     def run(self):
         """Main game loop."""
@@ -222,24 +113,6 @@ class SwimmingGame:
         # Clean up
         self._quit()
 
-    def _quit(self):
-        pygame.quit()
-        sys.exit()
-
-    def _handle_events(self) -> bool:
-        """Handle pygame events."""
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return False
-            
-            # Restart game on death screen
-            if self.game_over and event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_r:
-                    self._restart_game()
-                elif event.key == pygame.K_q:
-                    return False
-        return True
-    
     def _restart_game(self):
         """Restart the game while preserving level and minimum gold pieces."""
         # Preserve current level and minimum gold for that level
@@ -269,35 +142,6 @@ class SwimmingGame:
         
         # Reset game over state
         self.game_over = False
-
-    def _spawn_gold_pieces(self):
-        """Spawn gold pieces at intervals."""
-        self.gold_piece_spawn_timer += 1
-        if self.gold_piece_spawn_timer >= self.gold_piece_spawn_delay:
-            new_gold_piece = GoldPiece(self.asset_manager, self.screen_width, self.screen_height)
-            self.gold_pieces_group.add(new_gold_piece)
-            self.all_sprites.add(new_gold_piece)
-            self.gold_piece_spawn_timer = 0
-
-    def _spawn_birds(self):
-        """Spawn birds at intervals."""
-        self.bird_spawn_timer += 1
-        if self.bird_spawn_timer >= self.bird_spawn_delay:
-            new_bird = Bird(self.asset_manager, self.screen_width, self.screen_height)
-            self.bird_group.add(new_bird)
-            self.all_sprites.add(new_bird)
-            self.bird_spawn_timer = 0
-
-    def _spawn_miners(self):
-        """Spawn miners at intervals."""
-        self.miner_spawn_timer += 1
-        # print(f"Miner spawn timer: {self.miner_spawn_timer}, Delay: {self.miner_spawn_delay}")  # Debug print
-        if self.miner_spawn_timer >= self.miner_spawn_delay:
-            # print("Spawning miner!")  # Debug print
-            new_miner = Miner(self.asset_manager, self.screen_width, self.screen_height)
-            self.miner_group.add(new_miner)
-            self.all_sprites.add(new_miner)
-            self.miner_spawn_timer = 0
 
     def _update_game_state(self):
         """Update all game state elements."""
@@ -368,114 +212,6 @@ class SwimmingGame:
             # Game completed
             self.game_over = True
 
-    def _handle_gold_piece_collection(self):
-        """Handle player collecting gold pieces."""
-        collected_pieces = pygame.sprite.spritecollide(self.player, self.gold_pieces_group, True)
-        if collected_pieces:
-            # Play a collection sound (add to asset manager)
-            # self.gold_collect_sound.play()
-            self.coin_sound.play()
-            # Increment collected gold pieces
-            self.collected_gold_pieces += len(collected_pieces)
-            
-            # Optional: Increase player score
-            self.player.score += len(collected_pieces) * 5
-
-    def _spawn_rocks(self):
-        """Spawn rocks at intervals."""
-        self.rock_spawn_timer += 1
-        if self.rock_spawn_timer >= self.rock_spawn_delay:
-            new_rock = Rock(self.asset_manager, self.screen_width, self.screen_height)
-            self.rocks_group.add(new_rock)
-            self.all_sprites.add(new_rock)
-            self.rock_spawn_timer = 0
-
-    def _spawn_fish(self):
-        """Spawn fish at intervals."""
-        self.fish_spawn_timer += 1
-        if self.fish_spawn_timer >= self.fish_spawn_delay:
-            new_fish = Fish(self.asset_manager, self.screen_width, self.screen_height)
-            self.fish_group.add(new_fish)
-            self.all_sprites.add(new_fish)
-            self.fish_spawn_timer = 0
-
-    def _handle_miner_collisions(self):
-        """Handle player collisions with miners."""
-        # Only check for collisions if not in cooldown
-        if self.miner_hit_cooldown <= 0:
-            for miner in self.miner_group:
-                if miner.check_collision(self.player):
-                    # Lose one heart
-                    self.current_hunger = max(0, self.current_hunger - 2)
-                    
-                    # Set hit cooldown to prevent rapid multiple hits
-                    self.miner_hit_cooldown = 30  # Adjust as needed for balance
-                    
-                    # Optional: Add hit sound
-                    # You might want to add a hit sound to your asset manager
-                    self.miner_sound.play()
-                    break
-
-    def _check_player_trapped_by_rocks(self):
-        """
-        Check if player is trapped between a rock and the left screen edge.
-        
-        Returns:
-            bool: True if player is trapped, False otherwise
-        """
-        # Check if player is at the left edge of the screen
-        if self.player.rect.left <= 0:
-            # Find rocks touching the player's left side
-            for rock in self.rocks_group:
-                if self.player.rect.colliderect(rock.rect) and \
-                   rock.rect.right >= self.player.rect.left and \
-                   rock.rect.left <= self.player.rect.left:
-                    return True
-        return False
-    
-    def _handle_fish_collisions(self):
-        """Handle player eating fish."""
-        fish_eaten = pygame.sprite.spritecollide(self.player, self.fish_group, True)
-        if fish_eaten:
-            self.player.eat_sound.play()
-            self.player.score += len(fish_eaten)
-            self.player.is_eating = True
-            self.player.eating_timer = self.player.eating_duration
-            
-            # Replenish hunger
-            self.current_hunger = min(self.max_hunger, self.current_hunger + self.hunger_replenish_amount * len(fish_eaten))
-    
-
-    def _calculate_heart_jiggle(self, heart_index: int) -> float:
-        """Calculate jiggle offset for heart animation."""
-        if not self.full_heart_image or not self.half_heart_image:
-            return 0
-        
-        # Jiggle parameters
-        hunger_percentage = self.current_hunger / self.max_hunger
-        base_intensity = 5
-        max_intensity = 10
-        
-        # Dynamic jiggle calculation
-        intensity = max_intensity * (1 - hunger_percentage) + base_intensity
-        jiggle_speed = 10 * (hunger_percentage + 0.2)
-        phase_offset = heart_index * 0.5
-        
-        return math.sin(self.heart_jiggle_time / jiggle_speed + phase_offset) * intensity
-
-    def _update_hunger(self):
-        """Decrease hunger at discrete intervals."""
-        self.hunger_decrease_timer += 1
-        
-        # Decrease hunger
-        if self.hunger_decrease_timer >= self.hunger_decrease_interval:
-            if self.current_hunger > 0:
-                self.current_hunger -= 1
-            self.hunger_decrease_timer = 0
-        
-        # Increment jiggle time for heart animation
-        self.heart_jiggle_time += 1
-
 
     def _draw_win_screen(self):
         """Display the win screen."""
@@ -502,14 +238,223 @@ class SwimmingGame:
             self._draw_ui()
         else:
             # If the player won (reached max level and collected required gold)
-            if self.current_level == self.max_levels:
-                self._draw_win_screen()
+            if self.current_level == self.max_levels and self.collected_gold_pieces >= self.level_gold_requirements[self.current_level]:
+                # Start the fade effect
+                if not self.fading:
+                    self.fading = True
+                
+                # Draw sprites and UI for a smooth transition
+                self.all_sprites.draw(self.screen)
+                self._draw_ui()
+                
+                # Draw the fade overlay
+                self.fade_surface.set_alpha(self.fade_alpha)
+                self.screen.blit(self.fade_surface, (0, 0))
+                
+                # Check if fade is complete
+                if self._update_fade():
+                    self.player.stop_sound()
+                    return "end"
             else:
                 self._draw_death_screen()
         
         # Update display
         self.noise_overlay.update()
         pygame.display.flip()
+        
+        # Default return if we didn't transition to a new state
+        return None
+
+
+
+    def _update_fade(self):
+        """Update the fade effect after winning."""
+        if self.fading:
+            # Increase alpha to make the screen darker
+            self.fade_alpha = min(255, self.fade_alpha + self.fade_speed)
+            
+            # Start fading music when screen begins to darken
+            if not self.music_fade_started and self.fade_alpha > 20:
+                pygame.mixer.music.fadeout(2000)  # 3000ms = 3 seconds to fade out
+                self.music_fade_started = True
+            
+            # Return True when fade is complete
+            return self.fade_alpha >= 255
+        return False
+
+    def _init_game_parameters(self):
+        """Initialize game state parameters."""
+        
+        # Add fade parameters
+        self.fading = False
+        self.fade_alpha = 0  # Start completely transparent
+        self.fade_surface = pygame.Surface((self.screen_width, self.screen_height))
+        self.fade_surface.fill((0, 0, 0))  # Black surface for fading
+        self.fade_speed = 3  # How quickly to fade (alpha increase per frame)
+        self.music_fade_started = False
+
+        # Gold piece collection
+        self.gold_pieces_group = pygame.sprite.Group()
+        self.gold_piece_spawn_timer = 0
+        self.gold_piece_spawn_delay = 300  # Adjust spawning frequency
+        self.collected_gold_pieces = 0
+        self.gold_pieces_needed_for_level = 10  # Collect 10 gold pieces to progress
+        
+        # Replace level_timer with gold piece progression
+        self.current_gold_pieces = 0
+
+        # Spawn timers
+        self.fish_spawn_timer = 0
+        self.fish_spawn_delay = 60
+        self.rock_spawn_timer = 0
+        self.rock_spawn_delay = 100
+
+        # Add bird group
+        self.bird_group = pygame.sprite.Group()
+        
+        # Bird spawn parameters
+        self.bird_spawn_timer = 0
+        self.bird_spawn_delay = 500  # Infrequent bird spawns
+        
+        # Add miner spawn parameters
+        self.miner_spawn_timer = 0
+        self.miner_spawn_delay = 300  # Adjust spawn rate as needed
+        
+        # Miner hit cooldown to prevent multiple hits at once
+        self.miner_hit_cooldown = 0
+
+        # Hunger system
+        self.max_hunger = 10  # 10 half-hearts
+        self.current_hunger = self.max_hunger
+        self.hunger_decrease_rate = 0.1
+        self.hunger_decrease_timer = 0
+        self.hunger_decrease_interval = 100
+        self.hunger_replenish_amount = 2
+        
+        # Heart animation
+        self.heart_jiggle_time = 0
+        
+        # Game state
+        self.game_over = False
+
+
+
+    def _spawn_elements(self):
+        """Spawn game elements based on current level."""
+        current_config = self.level_spawn_config[self.current_level]
+        
+        # Spawn fish (always active)
+        self._spawn_fish()
+        
+        # Conditional spawns based on current level
+        if current_config['rocks']:
+            self._spawn_rocks()
+        
+        if current_config['birds']:
+            self._spawn_birds()
+        
+        if current_config['miners']:
+            self._spawn_miners()
+        
+        # Spawn gold pieces
+        self._spawn_gold_pieces()
+
+    def _load_game_assets(self):
+        """Load game images and fonts."""
+        self.texture = pygame.image.load("assets/images/texture.png").convert_alpha()
+        # Heart images
+        try:
+            full_heart_sheet = pygame.image.load("assets/images/player6.png").convert_alpha()
+            half_heart_sheet = pygame.image.load("assets/images/player_half.png").convert_alpha()
+            
+            # Heart image scaling
+            heart_size = (50, 50)
+            self.full_heart_image = self._process_heart_image(full_heart_sheet, heart_size)
+            self.half_heart_image = self._process_heart_image(half_heart_sheet, heart_size)
+            
+            # Ghosted heart for empty states
+            self.ghosted_heart = self.full_heart_image.copy()
+            self.ghosted_heart.set_alpha(50)
+        except Exception as e:
+            print(f"Error loading heart images: {e}")
+            self.full_heart_image = None
+            self.half_heart_image = None
+            self.ghosted_heart = None
+        
+        # Fonts and sound
+        self.font = pygame.font.Font(None, 36)
+        self.coin_sound = self.asset_manager.load_sound("assets/sounds/coins.ogg", 0.5)
+        self.miner_sound = self.asset_manager.load_sound("assets/sounds/miner.ogg", 0.2)
+
+        # self._setup_background_music()
+
+    def _process_heart_image(self, sheet: pygame.Surface, size: tuple) -> pygame.Surface:
+        """Process heart image from sprite sheet."""
+        heart_image = sheet.subsurface((0, 0, sheet.get_height(), sheet.get_height()))
+        return pygame.transform.scale(heart_image, size)
+
+    def _setup_background_music(self):
+        """Set up and play background music."""
+        try:
+            pygame.mixer.music.load("assets/sounds/pastoral_cut.ogg")
+            pygame.mixer.music.set_volume(0.3)
+            pygame.mixer.music.play(-1)
+        except pygame.error as e:
+            print(f"Error loading background music: {e}")
+
+
+
+    def _quit(self):
+        pygame.quit()
+        sys.exit()
+
+    def _handle_events(self) -> bool:
+        """Handle pygame events."""
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return False
+            
+            # Restart game on death screen
+            if self.game_over and event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    self._restart_game()
+                elif event.key == pygame.K_q:
+                    return False
+        return True
+    
+
+
+
+    def _spawn_gold_pieces(self):
+        """Spawn gold pieces at intervals."""
+        self.gold_piece_spawn_timer += 1
+        if self.gold_piece_spawn_timer >= self.gold_piece_spawn_delay:
+            new_gold_piece = GoldPiece(self.asset_manager, self.screen_width, self.screen_height)
+            self.gold_pieces_group.add(new_gold_piece)
+            self.all_sprites.add(new_gold_piece)
+            self.gold_piece_spawn_timer = 0
+
+    def _spawn_birds(self):
+        """Spawn birds at intervals."""
+        self.bird_spawn_timer += 1
+        if self.bird_spawn_timer >= self.bird_spawn_delay:
+            new_bird = Bird(self.asset_manager, self.screen_width, self.screen_height)
+            self.bird_group.add(new_bird)
+            self.all_sprites.add(new_bird)
+            self.bird_spawn_timer = 0
+
+    def _spawn_miners(self):
+        """Spawn miners at intervals."""
+        self.miner_spawn_timer += 1
+        # print(f"Miner spawn timer: {self.miner_spawn_timer}, Delay: {self.miner_spawn_delay}")  # Debug print
+        if self.miner_spawn_timer >= self.miner_spawn_delay:
+            # print("Spawning miner!")  # Debug print
+            new_miner = Miner(self.asset_manager, self.screen_width, self.screen_height)
+            self.miner_group.add(new_miner)
+            self.all_sprites.add(new_miner)
+            self.miner_spawn_timer = 0
+
+
 
     def _draw_death_screen(self):
         """Draw game over screen."""
@@ -519,10 +464,10 @@ class SwimmingGame:
         self.screen.blit(overlay, (0, 0))
         
         # Game Over text
-        game_over_text = self.death_font_large.render("GAME OVER", True, (255, 0, 0))
+        game_over_text = self.death_font_large.render("game over...", True, (255, 0, 0))
         score_text = self.death_font_small.render(f"Score: {self.player.score}", True, (255, 255, 255))
-        restart_text = self.death_font_small.render("Press 'R' to Restart", True, (255, 255, 255))
-        quit_text = self.death_font_small.render("Press 'Q' to Quit", True, (255, 255, 255))
+        restart_text = self.death_font_small.render("press R for restart", True, (255, 255, 255))
+        quit_text = self.death_font_small.render("press q for quit", True, (255, 255, 255))
         
         # Center text
         game_over_rect = game_over_text.get_rect(center=(self.screen_width//2, self.screen_height//2 - 100))
@@ -739,3 +684,111 @@ class SwimmingGame:
         progress_text_rect = progress_text.get_rect(center=(self.screen_width // 2, bar_y + bar_height + 25))
         self.screen.blit(progress_text, progress_text_rect)
         
+    def _handle_gold_piece_collection(self):
+        """Handle player collecting gold pieces."""
+        collected_pieces = pygame.sprite.spritecollide(self.player, self.gold_pieces_group, True)
+        if collected_pieces:
+            # Play a collection sound (add to asset manager)
+            # self.gold_collect_sound.play()
+            self.coin_sound.play()
+            # Increment collected gold pieces
+            self.collected_gold_pieces += len(collected_pieces)
+            
+            # Optional: Increase player score
+            self.player.score += len(collected_pieces) * 5
+
+    def _spawn_rocks(self):
+        """Spawn rocks at intervals."""
+        self.rock_spawn_timer += 1
+        if self.rock_spawn_timer >= self.rock_spawn_delay:
+            new_rock = Rock(self.asset_manager, self.screen_width, self.screen_height)
+            self.rocks_group.add(new_rock)
+            self.all_sprites.add(new_rock)
+            self.rock_spawn_timer = 0
+
+    def _spawn_fish(self):
+        """Spawn fish at intervals."""
+        self.fish_spawn_timer += 1
+        if self.fish_spawn_timer >= self.fish_spawn_delay:
+            new_fish = Fish(self.asset_manager, self.screen_width, self.screen_height)
+            self.fish_group.add(new_fish)
+            self.all_sprites.add(new_fish)
+            self.fish_spawn_timer = 0
+
+    def _handle_miner_collisions(self):
+        """Handle player collisions with miners."""
+        # Only check for collisions if not in cooldown
+        if self.miner_hit_cooldown <= 0:
+            for miner in self.miner_group:
+                if miner.check_collision(self.player):
+                    # Lose one heart
+                    self.current_hunger = max(0, self.current_hunger - 2)
+                    
+                    # Set hit cooldown to prevent rapid multiple hits
+                    self.miner_hit_cooldown = 30  # Adjust as needed for balance
+                    
+                    # Optional: Add hit sound
+                    # You might want to add a hit sound to your asset manager
+                    self.miner_sound.play()
+                    break
+
+    def _check_player_trapped_by_rocks(self):
+        """
+        Check if player is trapped between a rock and the left screen edge.
+        
+        Returns:
+            bool: True if player is trapped, False otherwise
+        """
+        # Check if player is at the left edge of the screen
+        if self.player.rect.left <= 0:
+            # Find rocks touching the player's left side
+            for rock in self.rocks_group:
+                if self.player.rect.colliderect(rock.rect) and \
+                   rock.rect.right >= self.player.rect.left and \
+                   rock.rect.left <= self.player.rect.left:
+                    return True
+        return False
+    
+    def _handle_fish_collisions(self):
+        """Handle player eating fish."""
+        fish_eaten = pygame.sprite.spritecollide(self.player, self.fish_group, True)
+        if fish_eaten:
+            self.player.eat_sound.play()
+            self.player.score += len(fish_eaten)
+            self.player.is_eating = True
+            self.player.eating_timer = self.player.eating_duration
+            
+            # Replenish hunger
+            self.current_hunger = min(self.max_hunger, self.current_hunger + self.hunger_replenish_amount * len(fish_eaten))
+    
+
+    def _calculate_heart_jiggle(self, heart_index: int) -> float:
+        """Calculate jiggle offset for heart animation."""
+        if not self.full_heart_image or not self.half_heart_image:
+            return 0
+        
+        # Jiggle parameters
+        hunger_percentage = self.current_hunger / self.max_hunger
+        base_intensity = 5
+        max_intensity = 10
+        
+        # Dynamic jiggle calculation
+        intensity = max_intensity * (1 - hunger_percentage) + base_intensity
+        jiggle_speed = 10 * (hunger_percentage + 0.2)
+        phase_offset = heart_index * 0.5
+        
+        return math.sin(self.heart_jiggle_time / jiggle_speed + phase_offset) * intensity
+
+    def _update_hunger(self):
+        """Decrease hunger at discrete intervals."""
+        self.hunger_decrease_timer += 1
+        
+        # Decrease hunger
+        if self.hunger_decrease_timer >= self.hunger_decrease_interval:
+            if self.current_hunger > 0:
+                self.current_hunger -= 1
+            self.hunger_decrease_timer = 0
+        
+        # Increment jiggle time for heart animation
+        self.heart_jiggle_time += 1
+

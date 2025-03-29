@@ -43,7 +43,6 @@ class TitleScreen:
         self.screen_width = 1280
         self.screen_height = 720
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
-        pygame.display.set_caption("water dog")
         
         # Colors
         self.WHITE = (220, 220, 220)
@@ -112,7 +111,7 @@ class TitleScreen:
     def _draw_text(self):
         """Draw title and subtitles."""
         # Main title
-        title_text = self.title_font.render("water dog", True, self.WHITE)
+        title_text = self.title_font.render("Golden Hound", True, self.WHITE)
         title_rect = title_text.get_rect(center=(self.screen_width//2, self.screen_height//2 - 250))
         
         # Second subtitle
@@ -123,12 +122,12 @@ class TitleScreen:
         shadow_offset = 3
         
         # Title shadow
-        shadow_title = self.title_font.render("GAME TITLE", True, self.BLACK)
+        shadow_title = self.title_font.render("Golden Hound", True, self.BLACK)
         self.screen.blit(shadow_title, (title_rect.x + shadow_offset, title_rect.y + shadow_offset))
         self.screen.blit(title_text, title_rect)
         
         # Subtitle shadow
-        shadow_subtitle = self.subtitle_font.render("New Adventure Awaits", True, self.BLACK)
+        shadow_subtitle = self.subtitle_font.render("art, code, music by speedlimit35", True, self.BLACK)
         self.screen.blit(shadow_subtitle, (subtitle_rect.x + shadow_offset, subtitle_rect.y + shadow_offset))
         self.screen.blit(subtitle_text, subtitle_rect)
         

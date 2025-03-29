@@ -186,6 +186,8 @@ class Player(pygame.sprite.Sprite):
         self._manage_movement_sound()
         
 
+    def stop_sound(self):
+        self.move_sound.stop()
 
     def _manage_movement_sound(self):
         """Manage swimming sound based on movement state."""
